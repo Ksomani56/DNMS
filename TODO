@@ -1,0 +1,49 @@
+TODO:
+    - fault detection: using events from pinger/mapper correlate which links we
+        think are having issues
+        (DONE - graph.AttributeLinkLoss + /v1/graph/edges/health correlate
+         per-route loss observations to identify lossy hops)
+    - aggregation
+        -- switch from pull to push
+        -- route around nodes that can't talk to aggregation nodes
+        -- auto-sharding (probably based on peername)
+        -- sharding boolean
+        -- Saggregator (super aggregator)
+        -- weighted hash to aggregator based on # of peers
+        -- aggregate mapper/routemap
+    - memberlist: use the meta field
+        -- include "role"
+        -- include http endpoint info (port at least)?
+    - configs
+        - HTTP listen address (DONE - -httpAddr flag)
+        - ping transport port (DONE - -pingPort flag)
+        - configurable ping rate
+        - configurable map rate
+        - metric update events (on routes)
+        - configurable metric ring size (currently hardcoded to 100)
+    - Better pings
+        - send multiple packets
+            -- measure jitter
+            -- check ordering
+    - Cleanup state serialization -- preferrably a string instead of a uint8 (up/suspect/down instead of 0/1/2)
+    - mapper:
+        - configurable dst port(s) for traceroute
+    - include link latency from traceroutes in Link struct (requires refcounting, etc.)
+
+    - Drop the github.com/jacksontj/memberlist fork now that the pinger no
+        longer uses SendToUDPPort. Should be able to switch back to upstream
+        hashicorp/memberlist and remove the go.mod replace.
+
+In the future:
+    - support TCP pings
+    - Better UI
+        -- separate views for graph vs routes etc.
+        -- visualization for latency / loss / etc
+
+Metrics to figure out:
+    - how many times a route flops over to a new one (route changes)
+    - average routes per peer?
+    - average latency for a link
+        -- diff the times for ICMP between the 2 nodes, keep a rolling average
+            average all the various routes' measured latencies?
+    - calculate latencies between nodes: https://www.serf.io/docs/internals/coordinates.html
