@@ -47,3 +47,4 @@ Metrics to figure out:
         -- diff the times for ICMP between the 2 nodes, keep a rolling average
             average all the various routes' measured latencies?
     - calculate latencies between nodes: https://www.serf.io/docs/internals/coordinates.html
+ 
