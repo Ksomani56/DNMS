@@ -1,0 +1,32 @@
+# ==============================================================================
+# DNMS Configuration File (dnms.example.yaml)
+# ==============================================================================
+
+cluster:
+  node_name: "node1"             # Unique identifier for this node in the cluster
+  bind_addr: "127.0.0.1"         # Local address to bind gossip and ping sockets
+  gossip_addr: "127.0.0.1"       # Address advertised to other cluster peers
+  gossip_port: 33434             # Memberlist SWIM protocol port (TCP & UDP)
+  peer: ""                       # Seed peer to join (e.g., "127.0.0.1:33434", empty for seed node)
+  aggregator: false              # Whether this node runs as a central aggregator
+
+http:
+  addr: ":12345"                 # HTTP API & SSE port
+  allow_origin: "*"              # CORS Access-Control-Allow-Origin
+  token: ""                      # Bearer token for authentication (optional)
+
+mapper:
+  interval: "1s"                 # Pause between traceroutes inside source-port sweep
+  src_port_start: 33436          # Start of UDP source port range for ECMP discovery
+  src_port_end: 33446            # End of UDP source port range
+
+pinger:
+  ping_port: 33435               # UDP port for high-speed ping/ack transport
+  peer_interval: "100ms"         # Delay between pinging successive peers
+  route_interval: "1s"           # Delay between pinging successive routes
+  timeout: "1s"                  # Ack timeout for a ping packet
+  ring_size: 100                 # Historical ping samples retained per route
+
+alerting:
+  webhook_url: ""                # Webhook URL (Slack, Discord, or generic HTTP POST)
+  loss_threshold: 0.15           # Suspicion score threshold (e.g. 15% loss) to trigger alerts
