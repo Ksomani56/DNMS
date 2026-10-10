@@ -1,0 +1,125 @@
+version: '3.8'
+
+services:
+  # Node 1: Cluster Seed Node
+  node1:
+    build: .
+    container_name: dnms-node1
+    hostname: node1
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    command: >
+      -nodeName node1
+      -httpAddr :12345
+      -bindAddr 10.99.0.10
+      -gossipAddr 10.99.0.10
+      -gossipPort 33434
+      -pingPort 33435
+    ports:
+      - "12345:12345"
+    networks:
+      dnms_mesh:
+        ipv4_address: 10.99.0.10
+    restart: unless-stopped
+
+  # Node 2: Joins Node 1
+  node2:
+    build: .
+    container_name: dnms-node2
+    hostname: node2
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    command: >
+      -nodeName node2
+      -httpAddr :12345
+      -bindAddr 10.99.0.11
+      -gossipAddr 10.99.0.11
+      -gossipPort 33434
+      -pingPort 33435
+      -peer 10.99.0.10:33434
+    ports:
+      - "12346:12345"
+    networks:
+      dnms_mesh:
+        ipv4_address: 10.99.0.11
+    depends_on:
+      - node1
+    restart: unless-stopped
+
+  # Node 3: Joins Node 1
+  node3:
+    build: .
+    container_name: dnms-node3
+    hostname: node3
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    command: >
+      -nodeName node3
+      -httpAddr :12345
+      -bindAddr 10.99.0.12
+      -gossipAddr 10.99.0.12
+      -gossipPort 33434
+      -pingPort 33435
+      -peer 10.99.0.10:33434
+    ports:
+      - "12347:12345"
+    networks:
+      dnms_mesh:
+        ipv4_address: 10.99.0.12
+    depends_on:
+      - node1
+    restart: unless-stopped
+
+  # Node 4: Joins Node 1
+  node4:
+    build: .
+    container_name: dnms-node4
+    hostname: node4
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    command: >
+      -nodeName node4
+      -httpAddr :12345
+      -bindAddr 10.99.0.13
+      -gossipAddr 10.99.0.13
+      -gossipPort 33434
+      -pingPort 33435
+      -peer 10.99.0.10:33434
+    ports:
+      - "12348:12345"
+    networks:
+      dnms_mesh:
+        ipv4_address: 10.99.0.13
+    depends_on:
+      - node1
+    restart: unless-stopped
+
+  # Optional Prometheus service for scraping node metrics
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: dnms-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks:
+      dnms_mesh:
+        ipv4_address: 10.99.0.90
+    depends_on:
+      - node1
+      - node2
+      - node3
+      - node4
+    restart: unless-stopped
+
+networks:
+  dnms_mesh:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.99.0.0/24
