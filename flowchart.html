@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DNMS — Master System Flowchart & Code Execution Graph</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #0B0F19;
+      --card-bg: #111827;
+      --border: #1F2937;
+      --primary: #38BDF8;
+      --accent: #6366F1;
+      --emerald: #10B981;
+      --amber: #F59E0B;
+      --crimson: #EF4444;
+      --text: #F8FAFC;
+      --muted: #94A3B8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Top Bar */
+    header {
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-badge {
+      background: linear-gradient(135deg, #0284C7, #6366F1);
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 16px;
+      color: #fff;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+    }
+
+    h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      background: #1E293B;
+      border: 1px solid #334155;
+      color: #E2E8F0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: #334155;
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0284C7, #4F46E5);
+      border: none;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+      transform: translateY(-1px);
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      padding: 32px;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .info-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .stat-val {
+      font-size: 14px;
+      font-weight: 600;
+      color: #E2E8F0;
+    }
+
+    /* Diagram Area */
+    .flowchart-container {
+      background: #0D1117;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      overflow-x: auto;
+      display: flex;
+      justify-content: center;
+    }
+
+    .mermaid {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    footer {
+      padding: 20px 32px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="logo-badge">D</div>
+      <div>
+        <h1>DNMS Architecture & Execution Flowchart</h1>
+        <div class="subtitle">Distributed Network Monitoring System — End-to-End Control Flow</div>
+      </div>
+    </div>
+    <div class="actions">
+      <a href="visualization.html" class="btn" target="_blank">🌐 Live NOC Dashboard</a>
+      <a href="DNMS_Project_Guide_and_Pitch.docx" class="btn btn-primary" download>📄 Download Docx</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="info-card">
+      <div class="stat-item">
+        <span class="stat-label">Core Runtime Engine</span>
+        <span class="stat-val" style="color: var(--primary);">Go 1.20+ / Multi-Goroutine Event Loop</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Cluster Discovery Protocol</span>
+        <span class="stat-val" style="color: var(--emerald);">SWIM Gossip (Port 33434 UDP/TCP)</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Multi-Path Mapping</span>
+        <span class="stat-val" style="color: var(--amber);">Source-Port Sweeping (Ports 33436..33446)</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Telemetry & RTT Transport</span>
+        <span class="stat-val" style="color: #F472B6);">Binary MsgPack UDP Ping (Port 33435)</span>
+      </div>
+    </div>
+
+    <div class="flowchart-container">
+      <pre class="mermaid">
+flowchart TD
+    %% Global Styling
+    classDef initStyle fill:#1E293B,stroke:#38BDF8,stroke-width:2px,color:#F8FAFC
+    classDef gossipStyle fill:#064E3B,stroke:#10B981,stroke-width:2px,color:#ECFDF5
+    classDef mapperStyle fill:#78350F,stroke:#F59E0B,stroke-width:2px,color:#FFFBEB
+    classDef pingStyle fill:#831843,stroke:#EC4899,stroke-width:2px,color:#FDF2F8
+    classDef faultStyle fill:#4C1D95,stroke:#8B5CF6,stroke-width:2px,color:#EDE9FE
+    classDef apiStyle fill:#1E1B4B,stroke:#6366F1,stroke-width:2px,color:#EEF2FF
+    classDef uiStyle fill:#0F172A,stroke:#06B6D4,stroke-width:2px,color:#CFFAFE
+
+    %% Phase 1: Boot & Initialization
+    subgraph P1[" 1. BOOTSTRAP & CLI CONFIGURATION (main.go) "]
+        direction TB
+        Boot["Start Daemon Binary<br/><code>./dnms -httpAddr :12345 -pingPort 33435</code>"]:::initStyle
+        ParseFlags["Parse CLI Flags & Validate Ports<br/><code>config.go | main.go</code>"]:::initStyle
+        InitGraph["Initialize In-Memory NetworkGraph<br/><code>graph.NewNetworkGraph()</code>"]:::initStyle
+        Boot --> ParseFlags --> InitGraph
+    end
+
+    %% Phase 2: Gossip Mesh
+    subgraph P2[" 2. DECENTRALIZED CLUSTER DISCOVERY (delegate.go) "]
+        direction TB
+        InitMemberlist["Create HashiCorp Memberlist<br/><code>memberlist.DefaultLANConfig()</code>"]:::gossipStyle
+        JoinMesh{"Seed Peer<br/>Provided?"}:::gossipStyle
+        SendGossip["Send Gossip Handshake<br/>(Port 33434 UDP/TCP)"]:::gossipStyle
+        StandAlone["Wait as Cluster Seed Node<br/>(Listen for Peers)"]:::gossipStyle
+        PeerEvent["Trigger Delegate Event<br/><code>NotifyJoin() / NotifyLeave()</code>"]:::gossipStyle
+
+        InitGraph --> InitMemberlist --> JoinMesh
+        JoinMesh -- "Yes (-peer IP:Port)" --> SendGossip --> PeerEvent
+        JoinMesh -- "No" --> StandAlone --> PeerEvent
+    end
+
+    %% Phase 3: ECMP Traceroute Mapping
+    subgraph P3[" 3. ECMP MULTI-PATH TRACEROUTE (mapper/ & internal/traceroute/) "]
+        direction TB
+        MapperAdd["Add Peer to Active Probing Queue<br/><code>Mapper.AddPeer(node)</code>"]:::mapperStyle
+        PortSweepLoop["Iterate UDP Source Ports<br/>(e.g., 33436, 33437 ... 33446)"]:::mapperStyle
+        RawSocket["Construct Raw UDP Socket<br/><code>syscall.SetsockoptInt(IP_TTL)</code><br/><code>syscall.SetsockoptInt(IP_RECVERR)</code>"]:::mapperStyle
+        SendProbe["Transmit Probe Packet<br/>Decrement TTL at each router hop"]:::mapperStyle
+        EpollWait["Epoll Async Listener on Error Queue<br/><code>syscall.Recvmsg(MSG_ERRQUEUE)</code>"]:::mapperStyle
+        CatchICMP["Capture ICMP Time Exceeded<br/>Extract Hop IP (Spine/Leaf Switch)"]:::mapperStyle
+        MergeGraph["Register Node & Links in NetworkGraph<br/><code>graph.IncrRoute(path)</code>"]:::mapperStyle
+
+        PeerEvent --> MapperAdd --> PortSweepLoop --> RawSocket --> SendProbe --> EpollWait --> CatchICMP --> MergeGraph
+    end
+
+    %% Phase 4: High-Frequency UDP Ping Transport
+    subgraph P4[" 4. CONTINUOUS UDP PING TRANSPORT (transport.go & pinger.go) "]
+        direction TB
+        PingerLoop["Continuous Sweep Loop (100ms Interval)<br/><code>pinger.PingPeers(ctx)</code>"]:::pingStyle
+        MsgPackBuild["Serialize Packet via MessagePack<br/><code>msgp.Encode(PingPacket{TimestampNS})</code>"]:::pingStyle
+        UDPSend["Send UDP Probe on Port 33435<br/>Binds to Discovered Route Source Port"]:::pingStyle
+        PeerAck["Remote Peer Transport Echoes ACK<br/><code>transport.Listen() Reply</code>"]:::pingStyle
+        CalcRTT["Calculate Microsecond RTT<br/><code>rtt = time.Since(start)</code>"]:::pingStyle
+        RingBuffer["Update 100-Sample Rolling Ring Buffer<br/>Calculate Median, P90, P99 & Loss Rate"]:::pingStyle
+
+        MergeGraph --> PingerLoop --> MsgPackBuild --> UDPSend --> PeerAck --> CalcRTT --> RingBuffer
+    end
+
+    %% Phase 5: Fault Attribution & Chaos
+    subgraph P5[" 5. FAULT ATTRIBUTION & CHAOS SIMULATOR (alerts.go & httpapi.go) "]
+        direction TB
+        AttributionMath["Compute Per-Link Suspicion Score<br/><code>Suspicion = AvgLoss(Through) - AvgLoss(NotThrough)</code>"]:::faultStyle
+        ThresholdCheck{"Suspicion ><br/>15% Loss?"}:::faultStyle
+        TriggerAlert["Record Incident Alert<br/>Dispatch Webhook / Slack Notification"]:::faultStyle
+        PrometheusExport["Expose Telemetry Counters<br/><code>GET /metrics (Prometheus Format)</code>"]:::faultStyle
+        ChaosInject["Chaos Fault Injection<br/><code>POST /v1/chaos/fault (Sever / Restore)</code>"]:::faultStyle
+
+        RingBuffer --> AttributionMath --> ThresholdCheck
+        ThresholdCheck -- "Yes (Degraded Link)" --> TriggerAlert --> PrometheusExport
+        ThresholdCheck -- "No (Healthy)" --> PrometheusExport
+        ChaosInject -. "Simulate Fiber Cut" .-> AttributionMath
+    end
+
+    %% Phase 6: HTTP REST & Server-Sent Events
+    subgraph P6[" 6. REST APIS & LIVE EVENT BROKER (httpapi.go) "]
+        direction TB
+        RestRoutes["REST API Handlers<br/><code>/v1/graph | /v1/mapper/peers | /v1/info</code>"]:::apiStyle
+        EventBroker["SSE Event Broker<br/>Publishes AddNode, AddLink, RouteUpdate"]:::apiStyle
+        SSEStream["Persistent SSE Stream<br/><code>GET /v1/events/graph</code>"]:::apiStyle
+
+        MergeGraph -.-> EventBroker
+        TriggerAlert -.-> EventBroker
+        EventBroker --> SSEStream
+    end
+
+    %% Phase 7: Mission-Control NOC UI
+    subgraph P7[" 7. ENTERPRISE NOC WEB DASHBOARD (visualization.html) "]
+        direction TB
+        D3Canvas["D3.js Force Simulation Canvas<br/>Spine switches (S1-S2) | Leaf (L1-L2) | Nodes (N1-N4)"]:::uiStyle
+        RouteTracer["Interactive ECMP Route Tracer HUD<br/>Select Src & Dst -> Glows Multi-Path Routes"]:::uiStyle
+        LatencyMatrix["Full-Mesh NxN Latency Matrix<br/>Emerald (<1.8ms) | Amber | Crimson"]:::uiStyle
+        WebTerminal["Embedded Diagnostics CLI (`)<br/>status | peers | ping | trace | chaos"]:::uiStyle
+
+        SSEStream ==> D3Canvas
+        RestRoutes ==> D3Canvas
+        D3Canvas --> RouteTracer
+        D3Canvas --> LatencyMatrix
+        D3Canvas --> WebTerminal
+    end
+      </pre>
+    </div>
+  </main>
+
+  <footer>
+    DNMS (Distributed Network Monitoring System) &bull; Autonomous ECMP Topology &amp; Microsecond Telemetry &bull; Golang &amp; D3.js
+  </footer>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        darkMode: true,
+        background: '#0D1117',
+        primaryColor: '#1E293B',
+        primaryTextColor: '#F8FAFC',
+        primaryBorderColor: '#38BDF8',
+        lineColor: '#64748B',
+        secondaryColor: '#1E1B4B',
+        tertiaryColor: '#0F172A',
+        fontFamily: 'Plus Jakarta Sans, sans-serif',
+        fontSize: '13px'
+      },
+      flowchart: {
+        curve: 'basis',
+        htmlLabels: true
+      }
+    });
+  </script>
+</body>
+</html>
