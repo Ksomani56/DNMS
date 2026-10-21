@@ -542,13 +542,58 @@ func (h *HTTPApi) handleChaosFault(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Src    string `json:"src"`
 		Dst    string `json:"dst"`
-		Action string `json:"action"` // "sever" | "restore"
+		Action string `json:"action"` // "sever" | "restore" | "heal"
+		Source string `json:"source"`
+		Target string `json:"target"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	logrus.Infof("[CHAOS] Fault injection applied: link [%s <-> %s] action: %s", req.Src, req.Dst, req.Action)
+	if req.Src == "" && req.Source != "" {
+		req.Src = req.Source
+	}
+	if req.Dst == "" && req.Target != "" {
+		req.Dst = req.Target
+	}
+
+	if req.Action == "heal" || req.Action == "restore_all" || (req.Action == "restore" && req.Src == "" && req.Dst == "") {
+		restoredCount := h.m.Graph.RestoreAllLinks()
+		logrus.Infof("[CHAOS] Restored all severed links (%d restored)", restoredCount)
+		if h.auditStore != nil {
+			h.auditStore.Record(&AuditEvent{
+				Node:        h.localName,
+				Category:    "CHAOS",
+				Action:      "ALL_LINKS_RESTORED",
+				Description: fmt.Sprintf("All %d severed links healed to nominal state", restoredCount),
+				Level:       AuditLevelInfo,
+			})
+		}
+	} else if req.Action == "sever" {
+		h.m.Graph.SetLinkState(req.Src, req.Dst, "SEVERED")
+		logrus.Infof("[CHAOS] Fault injection applied: link [%s <-> %s] severed", req.Src, req.Dst)
+		if h.auditStore != nil {
+			h.auditStore.Record(&AuditEvent{
+				Node:        req.Src,
+				Category:    "CHAOS",
+				Action:      "LINK_SEVERED",
+				Description: fmt.Sprintf("Interface link severed: %s <-> %s (State: SEVERED)", req.Src, req.Dst),
+				Level:       AuditLevelCrit,
+			})
+		}
+	} else {
+		h.m.Graph.SetLinkState(req.Src, req.Dst, "UP")
+		logrus.Infof("[CHAOS] Fault healed: link [%s <-> %s] restored", req.Src, req.Dst)
+		if h.auditStore != nil {
+			h.auditStore.Record(&AuditEvent{
+				Node:        req.Src,
+				Category:    "CHAOS",
+				Action:      "LINK_RESTORED",
+				Description: fmt.Sprintf("Interface link restored: %s <-> %s (State: UP)", req.Src, req.Dst),
+				Level:       AuditLevelInfo,
+			})
+		}
+	}
 
 	h.eventBroker.Publish([]string{"mapper"}, MessageEvent{
 		EventName: "chaosEvent",

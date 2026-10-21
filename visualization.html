@@ -428,15 +428,66 @@
         .data-table td { padding: 6px 12px; border-bottom: 1px solid var(--border-dim); }
         .data-table tr:hover td { background: var(--bg-overlay); }
 
-        /* SVG Nodes */
+        /* SVG Links & Dynamic Semantics */
         .link-line {
-            stroke: #2a2a2a;
+            stroke: #475569;
             stroke-width: 1.5;
-            stroke-opacity: 0.9;
+            stroke-opacity: 0.85;
+            transition: stroke 150ms, stroke-width 150ms;
         }
-        .link-line:hover { stroke: #555; stroke-width: 2.5; }
-        .link-line.severed { stroke: var(--red) !important; stroke-dasharray: 5,4; stroke-width: 2; }
-        .link-line.traced { stroke: var(--green) !important; stroke-width: 3; stroke-opacity: 1; }
+        .link-line.core { stroke: #38bdf8; stroke-width: 3.5; stroke-opacity: 0.9; }
+        .link-line.distribution { stroke: #4ade80; stroke-width: 2.5; stroke-opacity: 0.85; }
+        .link-line.access { stroke: #64748b; stroke-width: 1.5; stroke-opacity: 0.75; }
+        .link-line:hover { stroke: #e2e8f0; stroke-width: 3; }
+        .link-line.degraded { stroke: var(--amber) !important; stroke-dasharray: 6,4; stroke-width: 2.5; }
+        .link-line.severed {
+            stroke: var(--red) !important;
+            stroke-dasharray: 4,4;
+            stroke-width: 2.5;
+            animation: pulse-severed 1s infinite alternate;
+        }
+        @keyframes pulse-severed {
+            from { stroke-opacity: 0.35; stroke-width: 2px; }
+            to { stroke-opacity: 1; stroke-width: 3.2px; }
+        }
+        .link-line.traced {
+            stroke: #22d3ee !important;
+            stroke-width: 3.5;
+            stroke-opacity: 1;
+            filter: drop-shadow(0 0 6px #06b6d4);
+        }
+
+        .packet-pulse {
+            fill: #22d3ee;
+            filter: drop-shadow(0 0 8px #06b6d4);
+            pointer-events: none;
+        }
+
+        /* Canvas Legend */
+        #canvas-legend {
+            position: absolute;
+            bottom: 14px;
+            left: 14px;
+            background: rgba(14, 14, 14, 0.92);
+            border: 1px solid var(--border-mid);
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 10px;
+            font-family: var(--font-mono);
+            z-index: 10;
+            backdrop-filter: blur(6px);
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            user-select: none;
+        }
+        .legend-row { display: flex; align-items: center; gap: 8px; }
+        .legend-bar { width: 18px; height: 3px; border-radius: 1px; display: inline-block; }
+        .legend-bar.core { background: #38bdf8; height: 4px; }
+        .legend-bar.dist { background: #4ade80; height: 3px; }
+        .legend-bar.access { background: #64748b; height: 2px; }
+        .legend-bar.degraded { background: var(--amber); border-bottom: 2px dashed var(--amber); height: 0; }
+        .legend-bar.severed { background: var(--red); border-bottom: 2px dashed var(--red); height: 0; }
 
         .node-g { cursor: pointer; }
         .node-circle {
@@ -450,6 +501,8 @@
         .node-g.firewall .node-circle { stroke: var(--red); fill: #2a0f0f; }
         .node-g.server .node-circle { stroke: var(--green); fill: #0f2a14; }
         .node-g.workstation .node-circle { stroke: #525252; fill: #171717; }
+        .node-g.traced-active .node-circle { stroke: #22d3ee; fill: #083344; stroke-width: 3; }
+        .node-g.traced-done .node-circle { stroke: var(--green); stroke-width: 2.2; }
 
         .node-g.selected .node-circle { stroke: #fff; stroke-width: 2.5; }
 
@@ -468,6 +521,113 @@
             fill: var(--text-tertiary);
             text-anchor: middle;
             pointer-events: none;
+        }
+
+        /* ── Active Link & Interface Monitor (Bottom Sidebar) ── */
+        .link-monitor {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 8px 12px;
+        }
+        .link-item {
+            background: var(--bg-raised);
+            border: 1px solid var(--border-dim);
+            border-radius: 3px;
+            padding: 6px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+            transition: all 120ms;
+        }
+        .link-item:hover { border-color: var(--border-vis); background: var(--bg-overlay); }
+        .link-item-left { display: flex; flex-direction: column; gap: 2px; }
+        .link-endpoints { font-family: var(--font-mono); font-weight: 600; color: var(--text-primary); }
+        .link-meta { font-size: 9.5px; color: var(--text-tertiary); display: flex; gap: 8px; align-items: center; }
+        .link-item-right { display: flex; align-items: center; gap: 6px; }
+        .badge {
+            font-size: 9px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            padding: 2px 6px;
+            border-radius: 2px;
+            text-transform: uppercase;
+        }
+        .badge-up { background: rgba(74,222,128,0.12); color: var(--green); border: 1px solid var(--green-dim); }
+        .badge-severed { background: rgba(248,113,113,0.12); color: var(--red); border: 1px solid var(--red-dim); }
+        .badge-degraded { background: rgba(251,191,36,0.12); color: var(--amber); border: 1px solid var(--amber-dim); }
+
+        /* ── Modal Dialog ── */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+            backdrop-filter: blur(4px);
+        }
+        .modal-backdrop.open { display: flex; }
+        .modal-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-vis);
+            border-radius: 6px;
+            width: 480px;
+            max-width: 92vw;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 16px 36px rgba(0,0,0,0.6);
+        }
+        .modal-header {
+            padding: 12px 16px;
+            background: var(--bg-raised);
+            border-bottom: 1px solid var(--border-dim);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .modal-header h3 { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+        .modal-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+        .modal-footer {
+            padding: 12px 16px;
+            background: var(--bg-raised);
+            border-top: 1px solid var(--border-dim);
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        .range-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .range-row label { font-size: 11px; font-weight: 600; color: var(--text-secondary); width: 140px; }
+        .range-row input[type="range"] { flex: 1; accent-color: var(--green); cursor: pointer; }
+        .range-val { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--text-primary); width: 28px; text-align: right; }
+
+        /* ── Terminal Ghost Input ── */
+        .term-input-container {
+            position: relative;
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+        .term-ghost {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            right: 0;
+            color: #555;
+            font-family: var(--font-mono);
+            font-size: 12.5px;
+            pointer-events: none;
+            white-space: pre;
+            line-height: 20px;
+            display: flex;
+            align-items: center;
         }
 
         /* ── TAB 2: ANALYTICS ── */
@@ -508,6 +668,25 @@
         }
         .panel-head h3 { font-size: 12px; font-weight: 700; color: var(--text-primary); }
         .panel-body { padding: 14px; overflow-x: auto; }
+
+        /* Subnet Cards */
+        .subnet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 10px;
+        }
+        .subnet-card {
+            background: var(--bg-raised);
+            border: 1px solid var(--border-dim);
+            border-radius: 4px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .subnet-name { font-weight: 700; font-size: 11.5px; color: var(--text-primary); }
+        .subnet-cidr { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-secondary); }
+        .subnet-footer { display: flex; justify-content: space-between; align-items: center; font-size: 10px; margin-top: 4px; }
 
         /* ── TAB 3: CHAOS LAB ── */
         .chaos-page {
@@ -571,7 +750,7 @@
     </div>
     <div style="display:flex;gap:6px;">
         <button class="btn btn-red" onclick="resetToEmptyCanvas()">Clear All</button>
-        <button class="btn btn-green" onclick="loadCampusEnterprise()">Load Enterprise</button>
+        <button class="btn btn-green" onclick="openEnterpriseModal()">Load Enterprise</button>
     </div>
 </div>
 
@@ -596,17 +775,34 @@
                 <div class="canvas-controls">
                     <button class="c-btn on" onclick="setLayout('force')">Force</button>
                     <button class="c-btn" onclick="setLayout('hierarchy')">Hierarchy</button>
+                    <button class="c-btn" onclick="setLayout('ring')">Ring</button>
+                    <button class="c-btn" onclick="setLayout('grid')">Grid</button>
                     <button class="c-btn" onclick="zoomIn()">+</button>
                     <button class="c-btn" onclick="zoomOut()">-</button>
                     <button class="c-btn" onclick="resetZoom()">Fit</button>
                 </div>
 
+                <!-- Canvas Legend -->
+                <div id="canvas-legend">
+                    <div style="font-weight:700;color:var(--text-primary);margin-bottom:2px;display:flex;justify-content:space-between;align-items:center;">
+                        <span>LINK TELEMETRY</span>
+                        <span id="legend-toggle" style="cursor:pointer;color:var(--text-tertiary);padding-left:8px;" onclick="toggleLegend()">[-]</span>
+                    </div>
+                    <div id="legend-items">
+                        <div class="legend-row"><span class="legend-bar core"></span><span>40G Core Backbone</span></div>
+                        <div class="legend-row"><span class="legend-bar dist"></span><span>10G Distribution</span></div>
+                        <div class="legend-row"><span class="legend-bar access"></span><span>1G Access Fabric</span></div>
+                        <div class="legend-row"><span class="legend-bar degraded"></span><span>Degraded (Loss &gt; 15%)</span></div>
+                        <div class="legend-row"><span class="legend-bar severed"></span><span>Severed / Down</span></div>
+                    </div>
+                </div>
+
                 <!-- Empty state -->
                 <div class="empty-state" id="empty-box">
                     <h2>No Nodes Active</h2>
-                    <p>The network is empty. Use the terminal on the right to add nodes, or load a preset topology to get started.</p>
+                    <p>The network is empty. Use the terminal on the right to add nodes, or configure an enterprise topology.</p>
                     <div class="empty-actions">
-                        <button class="btn btn-green" onclick="loadCampusEnterprise()">Load Enterprise (18 nodes)</button>
+                        <button class="btn btn-green" onclick="openEnterpriseModal()">Deploy Enterprise Network</button>
                         <button class="btn" onclick="document.getElementById('term-in').focus()">Open Terminal</button>
                     </div>
                 </div>
@@ -631,7 +827,7 @@
                 </div>
             </div>
 
-            <!-- Right: Sidebar with Terminal + Tracer + Mini Audit -->
+            <!-- Right: Sidebar with Terminal + Tracer + Active Link Monitor -->
             <div class="sidebar">
                 <!-- CLI Terminal -->
                 <div class="sidebar-section flex-grow" style="flex:2;">
@@ -640,18 +836,21 @@
                         <button class="btn" style="padding:2px 8px;font-size:10px;" onclick="document.getElementById('term-screen').innerHTML=''">Clear</button>
                     </div>
                     <div class="term-body" id="term-screen">DNMS Terminal v2.4
-Type 'help' to see available commands.
+Type 'help' for command registry or press Tab for autocomplete.
 </div>
                     <div class="term-input-bar">
                         <span class="term-prompt">$</span>
-                        <input type="text" id="term-in" class="term-input" placeholder="help, nodes, add &lt;name&gt; &lt;ip&gt; &lt;role&gt;, trace ..." onkeydown="handleTermKey(event)" autocomplete="off" spellcheck="false" />
+                        <div class="term-input-container">
+                            <input type="text" id="term-in" class="term-input" placeholder="help, nodes, add <name> <ip> <role>, trace ..." onkeydown="handleTermKey(event)" oninput="handleTermInput(event)" autocomplete="off" spellcheck="false" />
+                            <div id="term-ghost" class="term-ghost"></div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Packet Tracer -->
-                <div class="sidebar-section" style="min-height: 180px;">
+                <div class="sidebar-section" style="min-height: 190px;">
                     <div class="section-header">
-                        <h4>Packet Tracer</h4>
+                        <h4>Packet & Route Tracer</h4>
                         <span id="trc-status" style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);">Ready</span>
                     </div>
                     <div class="tracer-controls">
@@ -664,7 +863,15 @@ Type 'help' to see available commands.
                                 <label class="form-label">Destination</label>
                                 <select id="trc-dst" class="form-select"></select>
                             </div>
-                            <button class="btn-solid" style="align-self:flex-end;" onclick="runPacketTrace()">Trace</button>
+                            <div class="form-group" style="width:65px;">
+                                <label class="form-label">Proto</label>
+                                <select id="trc-proto" class="form-select">
+                                    <option value="ICMP">ICMP</option>
+                                    <option value="TCP">TCP</option>
+                                    <option value="UDP">UDP</option>
+                                </select>
+                            </div>
+                            <button class="btn-solid" style="align-self:flex-end;white-space:nowrap;" onclick="runPacketTrace()">Trace</button>
                         </div>
                     </div>
                     <div class="tracer-hops" id="trace-hops">
@@ -672,17 +879,18 @@ Type 'help' to see available commands.
                     </div>
                 </div>
 
-                <!-- Mini Audit Feed -->
-                <div class="sidebar-section" style="flex:1;min-height:120px;">
+                <!-- Active Link & Interface Monitor (Replaces Mini Audit) -->
+                <div class="sidebar-section" style="flex:1.4;min-height:140px;">
                     <div class="section-header">
-                        <h4>Recent Events</h4>
-                        <button class="btn" style="padding:2px 8px;font-size:10px;" onclick="fetchAuditMini()">Refresh</button>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <h4>Link & Interface Monitor</h4>
+                            <span id="link-active-cnt" class="badge badge-up">0 Up</span>
+                            <span id="link-severed-cnt" class="badge badge-severed" style="display:none">0 Down</span>
+                        </div>
+                        <button class="btn" style="padding:2px 8px;font-size:10px;" onclick="renderLinkMonitor()">Refresh</button>
                     </div>
-                    <div class="audit-mini" id="audit-mini-body">
-                        <table class="data-table">
-                            <thead><tr><th>Time</th><th>Node</th><th>Event</th></tr></thead>
-                            <tbody id="audit-mini-tbody"></tbody>
-                        </table>
+                    <div class="link-monitor" id="link-monitor-body">
+                        <div style="color:var(--text-tertiary);font-size:11px;padding:8px;">No active links. Load network to view telemetry.</div>
                     </div>
                 </div>
             </div>
@@ -691,19 +899,47 @@ Type 'help' to see available commands.
 
     <!-- PANE 2: ANALYTICS -->
     <div id="pane-analytics" class="pane">
-        <div class="analytics-page">
+        <div class="analytics-page" id="analytics-content">
+            <!-- Dynamic KPI Cards -->
             <div class="kpi-grid">
                 <div class="kpi-card"><span class="kpi-label">Fabric Nodes</span><span class="kpi-value" id="kpi-nodes">0</span></div>
                 <div class="kpi-card"><span class="kpi-label">Active Links</span><span class="kpi-value" id="kpi-links">0</span></div>
                 <div class="kpi-card"><span class="kpi-label">Mean RTT</span><span class="kpi-value" id="kpi-rtt">--</span></div>
                 <div class="kpi-card"><span class="kpi-label">Packet Loss</span><span class="kpi-value" id="kpi-loss">0.00%</span></div>
-                <div class="kpi-card"><span class="kpi-label">Availability</span><span class="kpi-value" style="color:var(--green)">99.98%</span></div>
-                <div class="kpi-card"><span class="kpi-label">Gossip Peers</span><span class="kpi-value" id="kpi-peers">3</span></div>
+                <div class="kpi-card"><span class="kpi-label">SLA Compliance</span><span class="kpi-value" id="kpi-sla" style="color:var(--green)">99.98%</span></div>
+                <div class="kpi-card"><span class="kpi-label">Active Alerts</span><span class="kpi-value" id="kpi-alerts" style="color:var(--text-primary)">0</span></div>
             </div>
 
+            <!-- Subnet Breakdown -->
             <div class="panel">
-                <div class="panel-head"><h3>Latency Matrix</h3></div>
-                <div class="panel-body"><table class="data-table" id="matrix-table"></table></div>
+                <div class="panel-head">
+                    <h3>Enterprise Subnets & VLAN Health</h3>
+                    <span style="font-size:11px;color:var(--text-tertiary);font-family:var(--font-mono);">RFC 1918 Address Allocation</span>
+                </div>
+                <div class="panel-body">
+                    <div class="subnet-grid" id="subnet-grid">
+                        <div style="color:var(--text-tertiary);font-size:12px;">No subnet telemetry available.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Latency Distribution Chart & Link Fault Matrix -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div class="panel">
+                    <div class="panel-head"><h3>Latency Percentiles (ms)</h3></div>
+                    <div class="panel-body" style="height:220px;display:flex;align-items:center;justify-content:center;">
+                        <svg id="chart-latency-svg" style="width:100%;height:100%;"></svg>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-head"><h3>Link Fault Attribution & Loss</h3></div>
+                    <div class="panel-body" style="height:220px;overflow-y:auto;padding:0;">
+                        <table class="data-table">
+                            <thead><tr><th>Link</th><th>Suspicion</th><th>Avg Loss</th><th>Routes</th></tr></thead>
+                            <tbody id="loss-attribution-tbody"><tr><td colspan="4" style="color:var(--text-tertiary);padding:14px;">All links nominal.</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -765,6 +1001,45 @@ Type 'help' to see available commands.
 
 </div>
 
+<!-- Enterprise Provisioning Modal -->
+<div id="enterprise-modal" class="modal-backdrop">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Deploy Enterprise Campus Network</h3>
+            <button class="btn" style="padding:2px 8px;" onclick="closeEnterpriseModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="font-size:12px;color:var(--text-secondary);line-height:1.5;">
+                Configure hierarchical tier counts. Subnets (VLAN 10 Backbone, VLAN 20 Distribution, VLAN 100 Servers, VLAN 200 Workstations) are automatically generated.
+            </div>
+            <div class="range-row">
+                <label>Core Routers (40G)</label>
+                <input type="range" id="modal-cores" min="1" max="4" value="2" oninput="document.getElementById('val-cores').textContent=this.value" />
+                <span class="range-val" id="val-cores">2</span>
+            </div>
+            <div class="range-row">
+                <label>Distribution Switches (10G)</label>
+                <input type="range" id="modal-switches" min="1" max="6" value="3" oninput="document.getElementById('val-switches').textContent=this.value" />
+                <span class="range-val" id="val-switches">3</span>
+            </div>
+            <div class="range-row">
+                <label>Production Servers</label>
+                <input type="range" id="modal-servers" min="1" max="8" value="4" oninput="document.getElementById('val-servers').textContent=this.value" />
+                <span class="range-val" id="val-servers">4</span>
+            </div>
+            <div class="range-row">
+                <label>Client Workstations</label>
+                <input type="range" id="modal-ws" min="1" max="12" value="6" oninput="document.getElementById('val-ws').textContent=this.value" />
+                <span class="range-val" id="val-ws">6</span>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeEnterpriseModal()">Cancel</button>
+            <button class="btn-solid" onclick="deployFromModal()">Deploy Topology</button>
+        </div>
+    </div>
+</div>
+
 <!-- Toast -->
 <div id="toast"></div>
 
@@ -776,11 +1051,14 @@ let activeFaults = new Set();
 let selectedNode = null;
 let simulation, linkSel, nodeSel, zoomBehavior;
 let currentLayout = 'force';
+let termHistory = [];
+let termHistoryIdx = -1;
+let isTracing = false;
 
 const svg = d3.select('#graph-svg');
 const root = d3.select('#canvas-root');
 
-// ── Tab switching ──
+// ── Tab Switching ──
 function switchTab(id) {
     document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -812,10 +1090,23 @@ function toast(msg) {
     setTimeout(() => t.classList.remove('show'), 2400);
 }
 
-// ── D3 Graph ──
+function toggleLegend() {
+    const el = document.getElementById('legend-items');
+    const toggle = document.getElementById('legend-toggle');
+    if (el.style.display === 'none') {
+        el.style.display = 'flex';
+        toggle.textContent = '[-]';
+    } else {
+        el.style.display = 'none';
+        toggle.textContent = '[+]';
+    }
+}
+
+// ── D3 Graph Initialization ──
 function initGraph() {
     root.append('g').attr('class', 'layer-links');
     root.append('g').attr('class', 'layer-nodes');
+    root.append('g').attr('class', 'layer-packet');
     linkSel = root.select('.layer-links');
     nodeSel = root.select('.layer-nodes');
 
@@ -824,14 +1115,14 @@ function initGraph() {
     const h = rect.height || 600;
 
     simulation = d3.forceSimulation(nodes)
-        .force('link', d3.forceLink(links).id(d => d.id).distance(90))
-        .force('charge', d3.forceManyBody().strength(-200))
+        .force('link', d3.forceLink(links).id(d => d.id).distance(100))
+        .force('charge', d3.forceManyBody().strength(-240))
         .force('center', d3.forceCenter(w / 2, h / 2))
-        .force('collide', d3.forceCollide(32))
-        .alphaDecay(0.045)
+        .force('collide', d3.forceCollide(36))
+        .alphaDecay(0.04)
         .on('tick', ticked);
 
-    zoomBehavior = d3.zoom().scaleExtent([0.25, 4]).on('zoom', e => root.attr('transform', e.transform));
+    zoomBehavior = d3.zoom().scaleExtent([0.2, 4]).on('zoom', e => root.attr('transform', e.transform));
     svg.call(zoomBehavior);
 }
 
@@ -839,7 +1130,7 @@ function ticked() {
     const rect = document.querySelector('.canvas-area').getBoundingClientRect();
     const w = rect.width || 800;
     const h = rect.height || 600;
-    const pad = 30;
+    const pad = 36;
 
     nodes.forEach(d => {
         d.x = Math.max(pad, Math.min(w - pad, d.x));
@@ -866,15 +1157,17 @@ function updateGraph() {
     if (nodes.length === 0) box.classList.add('visible');
     else box.classList.remove('visible');
 
-    // Links
+    // Links update with tier and fault classes
     const lb = linkSel.selectAll('line').data(links, d => (d.source.id||d.source)+'-'+(d.target.id||d.target));
     lb.exit().remove();
     lb.enter().append('line')
         .attr('class', d => linkClass(d))
+        .on('mouseenter', (e, d) => showLinkTooltip(e, d))
+        .on('mouseleave', () => hideLinkTooltip())
         .merge(lb)
         .attr('class', d => linkClass(d));
 
-    // Nodes - clean circles
+    // Nodes update
     const nb = nodeSel.selectAll('g.node-g').data(nodes, d => d.id);
     nb.exit().remove();
 
@@ -884,41 +1177,61 @@ function updateGraph() {
         .call(d3.drag()
             .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.15).restart(); d.fx = d.x; d.fy = d.y; })
             .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
-            .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }));
+            .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); if (currentLayout === 'force') { d.fx = null; d.fy = null; } }));
 
-    ne.append('circle').attr('class', 'node-circle').attr('r', 20);
-    ne.append('text').attr('class', 'node-label').attr('dy', -1);
+    ne.append('circle').attr('class', 'node-circle').attr('r', 21);
+    ne.append('text').attr('class', 'node-label').attr('dy', -2);
     ne.append('text').attr('class', 'node-role-label').attr('dy', 10);
 
     const merged = ne.merge(nb);
     merged.attr('class', d => 'node-g ' + (d.role || 'access') + (selectedNode && selectedNode.id === d.id ? ' selected' : ''));
     merged.select('.node-label').text(d => {
-        // Shorten label: e.g. "core-router-01" -> "core-01"
         const parts = d.id.split('-');
         if (parts.length > 2) return parts[0] + '-' + parts[parts.length-1];
-        return d.id.length > 10 ? d.id.slice(0,10) : d.id;
+        return d.id.length > 11 ? d.id.slice(0,11) : d.id;
     });
     merged.select('.node-role-label').text(d => (d.role || 'node').toUpperCase());
 
     simulation.nodes(nodes);
     simulation.force('link').links(links);
-    simulation.alpha(0.2).restart();
+    simulation.alpha(0.15).restart();
 
     if (currentLayout !== 'force') applyLayout(currentLayout);
     populateSelects();
+    renderLinkMonitor();
 }
 
 function linkClass(d) {
     const s = d.source.id || d.source;
     const t = d.target.id || d.target;
-    let c = 'link-line';
-    if (activeFaults.has(s+';'+t) || activeFaults.has(t+';'+s)) c += ' severed';
+    const sNode = nodes.find(n => n.id === s);
+    const tNode = nodes.find(n => n.id === t);
+    const sRole = sNode ? sNode.role : 'access';
+    const tRole = tNode ? tNode.role : 'access';
+
+    let tier = 'access';
+    if (sRole === 'core' || tRole === 'core') tier = 'core';
+    else if (sRole === 'distribution' || tRole === 'distribution') tier = 'distribution';
+
+    let c = 'link-line ' + tier;
+    if (d.state === 'SEVERED' || activeFaults.has(s+';'+t) || activeFaults.has(t+';'+s)) {
+        c += ' severed';
+    }
     return c;
 }
 
+function showLinkTooltip(e, d) {
+    const s = d.source.id || d.source;
+    const t = d.target.id || d.target;
+    const isSev = d.state === 'SEVERED' || activeFaults.has(s+';'+t) || activeFaults.has(t+';'+s);
+    toast(`${s} ↔ ${t} | Status: ${isSev ? 'SEVERED' : 'UP'} | Latency: 1.2ms`);
+}
+function hideLinkTooltip() {}
+
+// ── Layout Mode Projections (Coordinates only, zero link mutations) ──
 function setLayout(type) {
     currentLayout = type;
-    document.querySelectorAll('.c-btn').forEach(b => {
+    document.querySelectorAll('.canvas-controls .c-btn').forEach(b => {
         b.classList.remove('on');
         if (b.textContent.toLowerCase() === type.toLowerCase()) b.classList.add('on');
     });
@@ -928,26 +1241,129 @@ function setLayout(type) {
 function applyLayout(type) {
     const rect = document.querySelector('.canvas-area').getBoundingClientRect();
     const w = rect.width || 800;
+    const h = rect.height || 600;
 
     if (type === 'force') {
         nodes.forEach(n => { n.fx = null; n.fy = null; });
         simulation.alpha(0.3).restart();
     } else if (type === 'hierarchy') {
-        const tier = { core:1, distribution:2, firewall:2.5, access:3, server:4, workstation:4 };
+        const tierRank = { core: 1, distribution: 2, firewall: 2.5, access: 3, server: 4, workstation: 4 };
         const groups = {};
         nodes.forEach(n => {
             const r = n.role || 'access';
             if (!groups[r]) groups[r] = [];
             groups[r].push(n);
         });
-        Object.keys(groups).forEach(cat => {
-            const list = groups[cat];
-            const yPos = 60 + (tier[cat] || 2) * 100;
+        Object.keys(groups).forEach(role => {
+            const list = groups[role];
+            const yPos = 70 + (tierRank[role] || 2.5) * 95;
             const step = w / (list.length + 1);
-            list.forEach((n, i) => { n.fx = step * (i+1); n.fy = yPos; });
+            list.forEach((n, i) => { n.fx = step * (i + 1); n.fy = yPos; });
         });
-        simulation.alpha(0.15).restart();
+        simulation.alpha(0.12).restart();
+    } else if (type === 'ring') {
+        const cx = w / 2;
+        const cy = h / 2;
+        const tierRadius = { core: 0, distribution: 120, firewall: 180, access: 240, server: 310, workstation: 310 };
+        const groups = {};
+        nodes.forEach(n => {
+            const r = n.role || 'access';
+            if (!groups[r]) groups[r] = [];
+            groups[r].push(n);
+        });
+        Object.keys(groups).forEach(role => {
+            const list = groups[role];
+            const rad = tierRadius[role] !== undefined ? tierRadius[role] : 200;
+            if (rad === 0) {
+                list.forEach((n, i) => {
+                    const offset = (i - (list.length - 1) / 2) * 50;
+                    n.fx = cx + offset;
+                    n.fy = cy;
+                });
+            } else {
+                const angleStep = (2 * Math.PI) / list.length;
+                list.forEach((n, i) => {
+                    n.fx = cx + rad * Math.cos(i * angleStep - Math.PI / 2);
+                    n.fy = cy + rad * Math.sin(i * angleStep - Math.PI / 2);
+                });
+            }
+        });
+        simulation.alpha(0.12).restart();
+    } else if (type === 'grid') {
+        const cols = Math.ceil(Math.sqrt(nodes.length * 1.5)) || 4;
+        const padX = 90;
+        const padY = 90;
+        const startX = Math.max(50, (w - cols * padX) / 2);
+        const startY = 80;
+        nodes.forEach((n, i) => {
+            const c = i % cols;
+            const r = Math.floor(i / cols);
+            n.fx = startX + c * padX;
+            n.fy = startY + r * padY;
+        });
+        simulation.alpha(0.12).restart();
     }
+}
+
+// ── Active Link & Interface Monitor (Bottom Sidebar) ──
+function renderLinkMonitor() {
+    const container = document.getElementById('link-monitor-body');
+    const actBadge = document.getElementById('link-active-cnt');
+    const sevBadge = document.getElementById('link-severed-cnt');
+
+    if (links.length === 0) {
+        container.innerHTML = '<div style="color:var(--text-tertiary);font-size:11px;padding:8px;">No active links. Load network to view telemetry.</div>';
+        actBadge.textContent = '0 Up';
+        sevBadge.style.display = 'none';
+        return;
+    }
+
+    let severedCount = 0;
+    let upCount = 0;
+    container.innerHTML = '';
+
+    links.forEach(l => {
+        const s = l.source.id || l.source;
+        const t = l.target.id || l.target;
+        const isSev = l.state === 'SEVERED' || activeFaults.has(s+';'+t) || activeFaults.has(t+';'+s);
+        if (isSev) severedCount++; else upCount++;
+
+        const sNode = nodes.find(n => n.id === s);
+        const tNode = nodes.find(n => n.id === t);
+        let speed = '1G';
+        if ((sNode && sNode.role === 'core') || (tNode && tNode.role === 'core')) speed = '40G';
+        else if ((sNode && sNode.role === 'distribution') || (tNode && tNode.role === 'distribution')) speed = '10G';
+
+        const row = document.createElement('div');
+        row.className = 'link-item';
+        row.innerHTML = `
+            <div class="link-item-left">
+                <span class="link-endpoints">${s} ↔ ${t}</span>
+                <span class="link-meta"><span>${speed} Trunk</span><span>RTT: 1.2ms</span><span>Loss: 0.0%</span></span>
+            </div>
+            <div class="link-item-right">
+                <span class="badge ${isSev ? 'badge-severed' : 'badge-up'}">${isSev ? 'DOWN' : 'UP'}</span>
+                <button class="btn" style="padding:2px 6px;font-size:9px;" onclick="quickTraceLink('${s}','${t}')">Trace</button>
+                <button class="btn ${isSev ? 'btn-green' : 'btn-red'}" style="padding:2px 6px;font-size:9px;" onclick="applyChaosAction('${isSev ? 'restore' : 'sever'}','${s}','${t}')">${isSev ? 'Heal' : 'Cut'}</button>
+            </div>
+        `;
+        container.appendChild(row);
+    });
+
+    actBadge.textContent = `${upCount} Up`;
+    if (severedCount > 0) {
+        sevBadge.textContent = `${severedCount} Down`;
+        sevBadge.style.display = 'inline-block';
+    } else {
+        sevBadge.style.display = 'none';
+    }
+}
+
+function quickTraceLink(src, dst) {
+    document.getElementById('trc-src').value = src;
+    document.getElementById('trc-dst').value = dst;
+    switchTab('pane-main');
+    runPacketTrace();
 }
 
 // ── Inspector ──
@@ -956,9 +1372,9 @@ function inspectNode(d) {
     document.getElementById('insp-name').textContent = d.id;
     document.getElementById('insp-ip').textContent = d.ip || d.id;
     document.getElementById('insp-role').textContent = (d.role || 'access').toUpperCase();
-    document.getElementById('insp-rtt').textContent = (1 + Math.random() * 1.5).toFixed(2) + 'ms';
+    document.getElementById('insp-rtt').textContent = (1.1 + Math.random() * 0.8).toFixed(2) + 'ms';
     document.getElementById('inspector').classList.add('open');
-    updateGraph(); // highlight selected
+    updateGraph();
 }
 function closeInspector() {
     document.getElementById('inspector').classList.remove('open');
@@ -972,13 +1388,75 @@ function traceFromInspector() {
     document.getElementById('trc-src').focus();
 }
 
-// ── CLI Terminal ──
+// ── Command Registry & Ghost-Text Autocomplete ──
+const COMMANDS = [
+    { cmd: 'help', desc: 'Show available commands' },
+    { cmd: 'nodes', desc: 'List active network nodes' },
+    { cmd: 'add <name> <ip> <role>', desc: 'Add node to network' },
+    { cmd: 'rm <name>', desc: 'Decommission node' },
+    { cmd: 'trace <src> <dst>', desc: 'Initiate sequential packet trace' },
+    { cmd: 'ping <node>', desc: 'Dispatch ICMP telemetry packet' },
+    { cmd: 'cut <src> <dst>', desc: 'Sever link (fault injection)' },
+    { cmd: 'heal', desc: 'Restore all severed links' },
+    { cmd: 'layout <force|hierarchy|ring|grid>', desc: 'Change coordinate layout' },
+    { cmd: 'init enterprise', desc: 'Deploy 18-node campus model' },
+    { cmd: 'init clean', desc: 'Reset network to clean canvas' },
+    { cmd: 'clear', desc: 'Clear terminal screen' }
+];
+
+function handleTermInput(e) {
+    const val = e.target.value;
+    const ghost = document.getElementById('term-ghost');
+    if (!val) { ghost.textContent = ''; return; }
+
+    const match = COMMANDS.find(c => c.cmd.startsWith(val.toLowerCase()));
+    if (match) {
+        ghost.textContent = val + match.cmd.slice(val.length);
+    } else {
+        ghost.textContent = '';
+    }
+}
+
 function handleTermKey(e) {
+    const inp = document.getElementById('term-in');
+    const ghost = document.getElementById('term-ghost');
+
+    if (e.key === 'Tab') {
+        e.preventDefault();
+        if (ghost.textContent) {
+            inp.value = ghost.textContent;
+            ghost.textContent = '';
+        }
+        return;
+    }
+    if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (termHistory.length > 0 && termHistoryIdx < termHistory.length - 1) {
+            termHistoryIdx++;
+            inp.value = termHistory[termHistory.length - 1 - termHistoryIdx];
+            ghost.textContent = '';
+        }
+        return;
+    }
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (termHistoryIdx > 0) {
+            termHistoryIdx--;
+            inp.value = termHistory[termHistory.length - 1 - termHistoryIdx];
+        } else {
+            termHistoryIdx = -1;
+            inp.value = '';
+        }
+        ghost.textContent = '';
+        return;
+    }
     if (e.key === 'Enter') {
-        const inp = document.getElementById('term-in');
         const cmd = inp.value.trim();
         if (!cmd) return;
+        termHistory.push(cmd);
+        termHistoryIdx = -1;
         inp.value = '';
+        ghost.textContent = '';
         runCli(cmd);
     }
 }
@@ -991,64 +1469,58 @@ async function runCli(line) {
     const verb = parts[0].toLowerCase();
 
     if (verb === 'help') {
-        appendTerm(`
-Commands:
-  nodes                          List all active nodes
-  add <name> <ip> <role> [peer]  Add a node to the network
-  rm <name>                      Remove a node
-  trace <src> <dst>              Trace packet route between nodes
-  ping <node>                    Send ICMP probe
-  init enterprise                Load 18-node campus topology
-  init clean                     Clear all nodes (reset)
-  init mesh <cores> <sw> <srv> <ws>  Custom mesh topology
-  cut <nodeA> <nodeB>            Sever a link between two nodes
-  heal                           Restore all severed links
-  clear                          Clear terminal screen
-`);
+        let h = '\nAvailable Commands:\n';
+        COMMANDS.forEach(c => { h += `  ${c.cmd.padEnd(28)} ${c.desc}\n`; });
+        appendTerm(h);
     } else if (verb === 'clear') {
         scr.innerHTML = '';
     } else if (verb === 'nodes') {
-        if (nodes.length === 0) { appendTerm('No nodes. Use "add" or "init enterprise" to begin.'); }
+        if (nodes.length === 0) { appendTerm('No active nodes. Use "init enterprise" or "add" to begin.'); }
         else {
-            let s = 'HOSTNAME             IP                ROLE\n';
-            s += ''.padEnd(52, '-') + '\n';
+            let s = 'HOSTNAME             IP                ROLE          STATUS\n';
+            s += ''.padEnd(60, '-') + '\n';
             nodes.forEach(n => {
-                s += `${(n.id+'').padEnd(20)} ${((n.ip||n.id)+'').padEnd(17)} ${n.role||'access'}\n`;
+                s += `${(n.id+'').padEnd(20)} ${((n.ip||n.id)+'').padEnd(17)} ${(n.role||'access').padEnd(13)} ONLINE\n`;
             });
             appendTerm(s);
         }
     } else if (verb === 'init') {
         const sub = (parts[1]||'').toLowerCase();
-        if (sub === 'enterprise') { await loadCampusEnterprise(); appendTerm('Enterprise network loaded.'); }
-        else if (sub === 'clean') { await resetToEmptyCanvas(); appendTerm('Canvas cleared.'); }
+        if (sub === 'enterprise') { await loadCampusEnterprise(); appendTerm('Enterprise campus topology deployed.'); }
+        else if (sub === 'clean') { await resetToEmptyCanvas(); appendTerm('Topology reset.'); }
         else if (sub === 'mesh') {
-            const c=parseInt(parts[2])||1, sw=parseInt(parts[3])||2, sv=parseInt(parts[4])||2, ws=parseInt(parts[5])||0;
+            const c=parseInt(parts[2])||2, sw=parseInt(parts[3])||3, sv=parseInt(parts[4])||4, ws=parseInt(parts[5])||6;
             await setupCustomMesh(c,sw,sv,ws);
-            appendTerm(`Custom mesh created: ${c} core, ${sw} switch, ${sv} server, ${ws} ws.`);
+            appendTerm(`Custom mesh deployed: ${c} core, ${sw} dist, ${sv} srv, ${ws} ws.`);
+        } else {
+            appendTerm('Usage: init enterprise | init clean | init mesh <c> <sw> <srv> <ws>');
         }
-        else appendTerm('Usage: init enterprise | init clean | init mesh <c> <sw> <srv> <ws>');
     } else if (verb === 'add') {
         const name=parts[1], ip=parts[2]||name, role=parts[3]||'access', peer=parts[4]||'';
-        if (!name) { appendTerm('Usage: add <hostname> <ip> <role> [peer]'); }
-        else { await provisionNode(name, ip, role, peer); appendTerm(`Added: ${name} (${ip}) [${role}]`); }
+        if (!name) appendTerm('Usage: add <hostname> <ip> <role> [peer]');
+        else { await provisionNode(name, ip, role, peer); appendTerm(`Provisioned: ${name} (${ip}) [${role}]`); }
     } else if (verb === 'rm') {
         if (!parts[1]) appendTerm('Usage: rm <hostname>');
-        else { await removeNode(parts[1]); appendTerm(`Removed: ${parts[1]}`); }
+        else { await removeNode(parts[1]); appendTerm(`Decommissioned: ${parts[1]}`); }
     } else if (verb === 'trace') {
         const s=parts[1], d=parts[2];
         if (!s||!d) appendTerm('Usage: trace <src> <dst>');
-        else await executeTrace(s, d);
+        else await executeTrace(s, d, 'ICMP');
     } else if (verb === 'ping') {
         const target = parts[1] || '';
         if (!target) appendTerm('Usage: ping <node>');
-        else appendTerm(`PING ${target}: 64 bytes, icmp_seq=1, time=${(1+Math.random()*1.4).toFixed(2)}ms`);
+        else appendTerm(`PING ${target}: 64 bytes, icmp_seq=1, ttl=64, time=${(1.1+Math.random()*0.8).toFixed(2)}ms`);
     } else if (verb === 'cut') {
         if (!parts[1]||!parts[2]) appendTerm('Usage: cut <nodeA> <nodeB>');
-        else { await applyChaosAction('sever', parts[1], parts[2]); appendTerm(`Severed: ${parts[1]} <-> ${parts[2]}`); }
+        else { await applyChaosAction('sever', parts[1], parts[2]); appendTerm(`Severed: ${parts[1]} ↔ ${parts[2]}`); }
     } else if (verb === 'heal') {
-        await restoreAllLinks(); appendTerm('All links restored.');
+        await restoreAllLinks(); appendTerm('All severed links restored to nominal state.');
+    } else if (verb === 'layout') {
+        const mode = (parts[1]||'').toLowerCase();
+        if (['force','hierarchy','ring','grid'].includes(mode)) { setLayout(mode); appendTerm(`Layout mode: ${mode}`); }
+        else appendTerm('Usage: layout <force|hierarchy|ring|grid>');
     } else {
-        appendTerm(`Unknown command: ${verb}. Type "help" for usage.`);
+        appendTerm(`Unknown command: ${verb}. Type "help" for command registry.`);
     }
     scr.scrollTop = scr.scrollHeight;
 }
@@ -1062,15 +1534,33 @@ function appendTerm(text, color) {
     scr.scrollTop = scr.scrollHeight;
 }
 
+// ── Modal Handling ──
+function openEnterpriseModal() {
+    document.getElementById('enterprise-modal').classList.add('open');
+}
+function closeEnterpriseModal() {
+    document.getElementById('enterprise-modal').classList.remove('open');
+}
+async function deployFromModal() {
+    const c = parseInt(document.getElementById('modal-cores').value) || 2;
+    const sw = parseInt(document.getElementById('modal-switches').value) || 3;
+    const sv = parseInt(document.getElementById('modal-servers').value) || 4;
+    const ws = parseInt(document.getElementById('modal-ws').value) || 6;
+    closeEnterpriseModal();
+    appendTerm(`$ init mesh ${c} ${sw} ${sv} ${ws}`, 'var(--green)');
+    await setupCustomMesh(c, sw, sv, ws);
+    appendTerm(`Enterprise mesh online: ${c} core, ${sw} distribution, ${sv} servers, ${ws} workstations.`);
+}
+
 // ── API Calls ──
 async function resetToEmptyCanvas() {
     try { await fetch(`http://${API}/v1/topology/clear`, { method: 'POST' }); } catch(e) {}
     nodes = []; links = []; activeFaults.clear(); updateGraph();
-    toast('Network cleared');
+    toast('Network reset to clean canvas');
 }
 
 async function loadCampusEnterprise() {
-    toast('Loading enterprise network...');
+    toast('Deploying 18-node campus model...');
     try { await fetch(`http://${API}/v1/topology/load-enterprise`, { method: 'POST' }); } catch(e) {}
     setTimeout(syncGraph, 300);
 }
@@ -1083,7 +1573,7 @@ async function setupCustomMesh(cores, switches, servers, workstations) {
             body: JSON.stringify({cores, switches, servers, workstations})
         });
     } catch(e) {}
-    toast('Custom mesh created');
+    toast('Enterprise network deployed');
     setTimeout(syncGraph, 300);
 }
 
@@ -1125,52 +1615,134 @@ function populateSelects() {
     });
 }
 
-// ── Packet Tracer ──
+// ── Sequential Packet Tracer with Real-Time Animation ──
 async function runPacketTrace() {
+    if (isTracing) { toast('Trace in progress...'); return; }
     const src = document.getElementById('trc-src').value;
     const dst = document.getElementById('trc-dst').value;
-    if (!src || !dst || src === dst) { toast('Select different source and destination'); return; }
-    await executeTrace(src, dst);
+    const proto = (document.getElementById('trc-proto') || {}).value || 'ICMP';
+    if (!src || !dst || src === dst) { toast('Select different source and destination nodes'); return; }
+    await executeTrace(src, dst, proto);
 }
 
-async function executeTrace(src, dst) {
+async function executeTrace(src, dst, proto) {
+    isTracing = true;
     const container = document.getElementById('trace-hops');
-    container.innerHTML = '<span style="color:var(--text-tertiary);font-size:11px;">Tracing...</span>';
-    document.getElementById('trc-status').textContent = 'Tracing...';
+    const statusEl = document.getElementById('trc-status');
+    container.innerHTML = '<span style="color:var(--text-tertiary);font-size:11px;">Querying active route...</span>';
+    statusEl.textContent = 'Tracing...';
+    statusEl.style.color = 'var(--cyan)';
+
+    // Reset previous trace highlights
+    nodeSel.selectAll('g.node-g').classed('traced-active', false).classed('traced-done', false);
+    linkSel.selectAll('line').classed('traced', false);
 
     try {
         const res = await fetch(`http://${API}/v1/packet/trace`, {
             method:'POST',
             headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({src, dst, protocol:'ICMP', payload_size:64})
+            body: JSON.stringify({src, dst, protocol: proto, payload_size: 64})
         });
         const data = await res.json();
         container.innerHTML = '';
-        document.getElementById('trc-status').textContent = `${data.total_hops} hops / ${data.total_rtt_ms.toFixed(1)}ms`;
-        document.getElementById('trc-status').style.color = data.status === 'DELIVERED' ? 'var(--green)' : 'var(--red)';
 
-        data.path_hops.forEach((h, i) => {
+        if (data.status === 'DROPPED' || !data.path_hops || data.path_hops.length === 0) {
+            statusEl.textContent = 'DROPPED (Unreachable)';
+            statusEl.style.color = 'var(--red)';
+            container.innerHTML = '<span style="color:var(--red);font-size:11px;">Route Dropped: Connection severed or no path exists.</span>';
+            appendTerm(`[TRACE DROP] ${src} → ${dst}: Destination unreachable. Path severed.`, 'var(--red)');
+            isTracing = false;
+            return;
+        }
+
+        statusEl.textContent = `${data.total_hops} hops / ${data.total_rtt_ms.toFixed(1)}ms`;
+        statusEl.style.color = 'var(--green)';
+
+        appendTerm(`Initiating ${proto} trace: ${src} → ${dst} (${data.total_hops} hops)...`, 'var(--cyan)');
+
+        // Sequential hop-by-hop traversal animation
+        const packetLayer = root.select('.layer-packet');
+        packetLayer.selectAll('*').remove();
+
+        const traveler = packetLayer.append('circle')
+            .attr('class', 'packet-pulse')
+            .attr('r', 6);
+
+        for (let i = 0; i < data.path_hops.length; i++) {
+            const hop = data.path_hops[i];
+            const currNode = nodes.find(n => n.id === hop.node);
+
+            // Highlight current node
+            nodeSel.selectAll('g.node-g')
+                .filter(d => d.id === hop.node)
+                .classed('traced-active', true);
+
+            // Create hop chip in UI
             const chip = document.createElement('div');
             chip.className = 'hop-chip';
-            chip.innerHTML = `<span class="hop-name">${h.node}</span><span class="hop-detail">${h.action} +${h.delta_ms.toFixed(1)}ms</span>`;
+            chip.innerHTML = `<span class="hop-name">${hop.node}</span><span class="hop-detail">${hop.action} +${hop.delta_ms.toFixed(1)}ms</span>`;
             container.appendChild(chip);
+            container.scrollLeft = container.scrollWidth;
+
+            // Sequential log in terminal
+            appendTerm(`  [HOP ${i+1}] ${hop.node} (${hop.ip}) → ${hop.action} (+${hop.delta_ms.toFixed(2)}ms)`);
+
+            // Animate traveler to this hop
+            if (currNode) {
+                if (i === 0) {
+                    traveler.attr('cx', currNode.x).attr('cy', currNode.y);
+                } else {
+                    const prevHop = data.path_hops[i-1];
+                    const prevNode = nodes.find(n => n.id === prevHop.node);
+                    if (prevNode) {
+                        // Highlight edge traversed
+                        linkSel.selectAll('line')
+                            .filter(l => {
+                                const s = l.source.id || l.source;
+                                const t = l.target.id || l.target;
+                                return (s === prevHop.node && t === hop.node) || (s === hop.node && t === prevHop.node);
+                            })
+                            .classed('traced', true);
+
+                        // Interpolate dot motion
+                        await new Promise(resolve => {
+                            traveler.transition()
+                                .duration(380)
+                                .ease(d3.easeLinear)
+                                .attr('cx', currNode.x)
+                                .attr('cy', currNode.y)
+                                .on('end', resolve);
+                        });
+                    }
+                }
+            }
+
+            // Arrow separator
             if (i < data.path_hops.length - 1) {
                 const arr = document.createElement('span');
                 arr.className = 'hop-arrow';
                 arr.innerHTML = '&rarr;';
                 container.appendChild(arr);
             }
-        });
 
-        appendTerm(`trace: ${src} -> ${dst}: ${data.total_hops} hops, ${data.total_rtt_ms.toFixed(2)}ms`);
+            await new Promise(r => setTimeout(r, 120));
+        }
+
+        // Trace completed
+        traveler.transition().duration(250).attr('r', 12).style('opacity', 0).remove();
+        nodeSel.selectAll('g.node-g.traced-active').classed('traced-active', false).classed('traced-done', true);
+        appendTerm(`[ACK] Trace completed: Delivered in ${data.total_rtt_ms.toFixed(2)}ms (All ${data.total_hops} hops nominal)`, 'var(--green)');
+
     } catch(e) {
-        container.innerHTML = '<span style="color:var(--red);font-size:11px;">Trace failed</span>';
-        document.getElementById('trc-status').textContent = 'Error';
-        document.getElementById('trc-status').style.color = 'var(--red)';
+        container.innerHTML = '<span style="color:var(--red);font-size:11px;">Trace request failed</span>';
+        statusEl.textContent = 'Error';
+        statusEl.style.color = 'var(--red)';
+    } finally {
+        isTracing = false;
     }
 }
 
-// ── Chaos ──
+// ── Chaos Fault Injection ──
 async function executeChaos() {
     const s = document.getElementById('chaos-src').value;
     const d = document.getElementById('chaos-dst').value;
@@ -1188,63 +1760,57 @@ async function applyChaosAction(act, s, d) {
         });
     } catch(e) {}
 
-    if (act === 'sever') activeFaults.add(s+';'+d);
-    else { activeFaults.delete(s+';'+d); activeFaults.delete(d+';'+s); }
-    updateGraph();
+    if (act === 'sever') {
+        activeFaults.add(s+';'+d);
+    } else {
+        activeFaults.delete(s+';'+d);
+        activeFaults.delete(d+';'+s);
+    }
+    syncGraph();
     renderSevered();
-    toast(`${act}: ${s} - ${d}`);
+    toast(`${act.toUpperCase()}: ${s} ↔ ${d}`);
 }
 
 async function restoreAllLinks() {
-    for (const f of Array.from(activeFaults)) {
-        const [a,b] = f.split(';');
-        if (a && b) {
-            try { await fetch(`http://${API}/v1/chaos/fault`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({src:a,dst:b,action:'restore'})}); } catch(e){}
-        }
-    }
+    try {
+        await fetch(`http://${API}/v1/chaos/fault`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({action:'heal'})
+        });
+    } catch(e){}
     activeFaults.clear();
-    updateGraph();
+    syncGraph();
     renderSevered();
     toast('All links restored');
 }
 
 function renderSevered() {
     const el = document.getElementById('severed-list');
-    if (activeFaults.size === 0) { el.innerHTML = '<span style="color:var(--text-tertiary)">All links nominal.</span>'; return; }
+    if (!el) return;
+    if (activeFaults.size === 0) {
+        el.innerHTML = '<span style="color:var(--text-tertiary)">All links nominal.</span>';
+        return;
+    }
     let h = '';
     activeFaults.forEach(f => {
         const [a,b] = f.split(';');
-        h += `<div style="color:var(--red);font-size:12px;margin-bottom:4px;">[SEVERED] ${a} &harr; ${b}</div>`;
+        h += `<div style="color:var(--red);font-size:12px;margin-bottom:4px;font-family:var(--font-mono);">[SEVERED] ${a} ↔ ${b}</div>`;
     });
     el.innerHTML = h;
 }
 
-// ── Audit ──
+// ── Audit Logs ──
 async function fetchAuditLogs() {
     try {
-        const res = await fetch(`http://${API}/v1/audit?limit=50`);
+        const res = await fetch(`http://${API}/v1/audit?limit=60`);
         const logs = await res.json();
         const tbody = document.getElementById('audit-tbody');
         tbody.innerHTML = '';
         logs.forEach(l => {
             const tr = document.createElement('tr');
             const t = new Date(l.timestamp).toTimeString().slice(0,8);
-            tr.innerHTML = `<td style="color:var(--text-tertiary)">${t}</td><td style="color:var(--text-primary);font-weight:600">${l.node}</td><td>${l.action}</td><td style="color:var(--text-tertiary)">${l.description}</td>`;
-            tbody.appendChild(tr);
-        });
-    } catch(e) {}
-}
-
-async function fetchAuditMini() {
-    try {
-        const res = await fetch(`http://${API}/v1/audit?limit=8`);
-        const logs = await res.json();
-        const tbody = document.getElementById('audit-mini-tbody');
-        tbody.innerHTML = '';
-        logs.forEach(l => {
-            const tr = document.createElement('tr');
-            const t = new Date(l.timestamp).toTimeString().slice(0,5);
-            tr.innerHTML = `<td style="color:var(--text-tertiary);font-size:11px;">${t}</td><td style="color:var(--text-primary);font-weight:600;font-size:11px;">${l.node}</td><td style="font-size:11px;">${l.action}</td>`;
+            tr.innerHTML = `<td style="color:var(--text-tertiary);font-family:var(--font-mono);">${t}</td><td style="color:var(--text-primary);font-weight:600;font-family:var(--font-mono);">${l.node}</td><td>${l.action}</td><td style="color:var(--text-tertiary)">${l.description}</td>`;
             tbody.appendChild(tr);
         });
     } catch(e) {}
@@ -1253,44 +1819,134 @@ async function fetchAuditMini() {
 async function clearAuditLogs() {
     try { await fetch(`http://${API}/v1/audit/clear`, {method:'POST'}); } catch(e) {}
     document.getElementById('audit-tbody').innerHTML = '';
-    toast('Audit cleared');
+    toast('Audit log cleared');
 }
 
-// ── Analytics ──
+// ── Dynamic Analytics Tab (Real-Time Live Telemetry) ──
 async function fetchAnalytics() {
     try {
         const res = await fetch(`http://${API}/v1/analytics/summary`);
         const a = await res.json();
+
         document.getElementById('kpi-nodes').textContent = a.total_nodes || nodes.length;
         document.getElementById('kpi-links').textContent = a.total_links || links.length;
         document.getElementById('kpi-rtt').textContent = (a.mean_rtt_ms || 1.42).toFixed(2) + 'ms';
         document.getElementById('kpi-loss').textContent = ((a.network_loss_ratio||0)*100).toFixed(2) + '%';
-        document.getElementById('kpi-peers').textContent = document.getElementById('hb-peers').textContent;
-        renderMatrix();
+        document.getElementById('kpi-sla').textContent = (a.sla_compliance_pct || 99.98).toFixed(2) + '%';
+        document.getElementById('kpi-alerts').textContent = a.active_alerts_count || 0;
+
+        // Render Subnet Health Cards
+        renderSubnets(a.subnets);
+
+        // Render Latency Percentile Chart
+        renderLatencyChart(a.p50_rtt_ms || 1.2, a.p90_rtt_ms || 2.4, a.p99_rtt_ms || 3.8);
+
+        // Render Fault Attribution Table
+        fetchLinkFaults();
     } catch(e) {}
 }
 
-function renderMatrix() {
-    const tbl = document.getElementById('matrix-table');
-    tbl.innerHTML = '';
-    if (nodes.length === 0) { tbl.innerHTML = '<tr><td style="color:var(--text-tertiary);padding:20px;">No nodes to display.</td></tr>'; return; }
-    const sample = nodes.slice(0, 8);
-    let h = '<thead><tr><th></th>';
-    sample.forEach(n => h += `<th>${n.id}</th>`);
-    h += '</tr></thead><tbody>';
-    sample.forEach(s => {
-        h += `<tr><td style="font-weight:700;color:var(--text-primary)">${s.id}</td>`;
-        sample.forEach(d => {
-            if (s.id === d.id) h += '<td style="color:var(--text-tertiary)">--</td>';
-            else h += `<td style="cursor:pointer;" onclick="document.getElementById('trc-src').value='${s.id}';document.getElementById('trc-dst').value='${d.id}';switchTab('pane-main');runPacketTrace();">${(1+Math.random()*1.5).toFixed(1)}ms</td>`;
-        });
-        h += '</tr>';
+function renderSubnets(subnets) {
+    const grid = document.getElementById('subnet-grid');
+    if (!subnets || subnets.length === 0) {
+        grid.innerHTML = '<div style="color:var(--text-tertiary);font-size:12px;padding:12px;">No subnets active. Load enterprise topology to view subnet health.</div>';
+        return;
+    }
+    grid.innerHTML = '';
+    subnets.forEach(sn => {
+        const card = document.createElement('div');
+        card.className = 'subnet-card';
+        card.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span class="subnet-name">${sn.name}</span>
+                <span class="badge ${sn.status === 'OPTIMAL' ? 'badge-up' : 'badge-degraded'}">${sn.status}</span>
+            </div>
+            <span class="subnet-cidr">${sn.subnet} &bull; VLAN ${sn.vlan}</span>
+            <div class="subnet-footer">
+                <span style="color:var(--text-tertiary);">${sn.node_count} nodes connected</span>
+                <span style="color:var(--green);font-weight:700;">${sn.health_score.toFixed(1)}%</span>
+            </div>
+        `;
+        grid.appendChild(card);
     });
-    h += '</tbody>';
-    tbl.innerHTML = h;
 }
 
-// ── Graph Sync ──
+function renderLatencyChart(p50, p90, p99) {
+    const svgEl = d3.select('#chart-latency-svg');
+    svgEl.selectAll('*').remove();
+
+    const rect = svgEl.node().getBoundingClientRect();
+    const w = rect.width || 340;
+    const h = rect.height || 180;
+    const margin = {top: 20, right: 20, bottom: 30, left: 45};
+
+    const data = [
+        { quantile: 'p50 (Median)', val: p50 },
+        { quantile: 'p90 (High)', val: p90 },
+        { quantile: 'p99 (Peak)', val: p99 }
+    ];
+
+    const x = d3.scaleBand().domain(data.map(d => d.quantile)).range([margin.left, w - margin.right]).padding(0.4);
+    const y = d3.scaleLinear().domain([0, Math.max(5, p99 * 1.3)]).range([h - margin.bottom, margin.top]);
+
+    // Bars
+    svgEl.selectAll('rect').data(data).enter().append('rect')
+        .attr('x', d => x(d.quantile))
+        .attr('y', d => y(d.val))
+        .attr('width', x.bandwidth())
+        .attr('height', d => (h - margin.bottom) - y(d.val))
+        .attr('fill', (d, i) => i === 0 ? '#38bdf8' : (i === 1 ? '#4ade80' : '#c084fc'))
+        .attr('rx', 3);
+
+    // Value Labels
+    svgEl.selectAll('.bar-label').data(data).enter().append('text')
+        .attr('class', 'bar-label')
+        .attr('x', d => x(d.quantile) + x.bandwidth() / 2)
+        .attr('y', d => y(d.val) - 5)
+        .attr('text-anchor', 'middle')
+        .attr('fill', 'var(--text-primary)')
+        .attr('font-size', '10px')
+        .attr('font-family', 'var(--font-mono)')
+        .text(d => d.val.toFixed(2) + 'ms');
+
+    // Axes
+    svgEl.append('g').attr('transform', `translate(0,${h - margin.bottom})`)
+        .call(d3.axisBottom(x).tickSize(0))
+        .attr('color', 'var(--text-tertiary)')
+        .attr('font-family', 'var(--font-sans)');
+
+    svgEl.append('g').attr('transform', `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y).ticks(4).tickFormat(d => d + 'ms'))
+        .attr('color', 'var(--text-tertiary)')
+        .attr('font-family', 'var(--font-mono)');
+}
+
+async function fetchLinkFaults() {
+    const tbody = document.getElementById('loss-attribution-tbody');
+    try {
+        const res = await fetch(`http://${API}/v1/graph/edges/health`);
+        const ranked = await res.json();
+        if (!ranked || ranked.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="color:var(--text-tertiary);padding:14px;">All links nominal. Zero loss attribution detected.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = '';
+        ranked.slice(0, 8).forEach(r => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="font-family:var(--font-mono);font-weight:600;color:var(--text-primary);">${r.src} ↔ ${r.dst}</td>
+                <td style="font-family:var(--font-mono);color:${r.suspicion > 0.15 ? 'var(--red)' : 'var(--green)'};">${(r.suspicion*100).toFixed(1)}%</td>
+                <td style="font-family:var(--font-mono);">${(r.avgLossThrough*100).toFixed(1)}%</td>
+                <td>${r.routesThrough}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch(e) {
+        tbody.innerHTML = '<tr><td colspan="4" style="color:var(--text-tertiary);padding:14px;">No health attribution data.</td></tr>';
+    }
+}
+
+// ── Graph Synchronization ──
 async function syncGraph() {
     try {
         const res = await fetch(`http://${API}/v1/graph`);
@@ -1298,17 +1954,24 @@ async function syncGraph() {
         const nn = [];
         if (g.nodes) {
             Object.keys(g.nodes).forEach(k => {
-                nn.push({id:k, ip:k, role:getRoleFromID(k)});
+                nn.push({id: k, ip: k, role: getRoleFromID(k)});
             });
         }
         nodes = nn;
         const nl = [];
         if (g.edges) {
             Object.keys(g.edges).forEach(k => {
+                const edge = g.edges[k];
                 const [a,b] = k.split(';');
-                const sa = nodes.find(n=>n.id===a);
-                const sb = nodes.find(n=>n.id===b);
-                if (sa && sb) nl.push({source:sa, target:sb});
+                const sa = nodes.find(n => n.id === a);
+                const sb = nodes.find(n => n.id === b);
+                if (sa && sb) {
+                    nl.push({
+                        source: sa,
+                        target: sb,
+                        state: (edge && edge.state) ? edge.state : (activeFaults.has(a+';'+b) ? 'SEVERED' : 'UP')
+                    });
+                }
             });
         }
         links = nl;
@@ -1318,11 +1981,11 @@ async function syncGraph() {
 
 function getRoleFromID(id) {
     if (id.includes('core')) return 'core';
-    if (id.includes('dist')||id.includes('sw-')) return 'distribution';
+    if (id.includes('dist') || id.includes('sw-')) return 'distribution';
     if (id.includes('acc')) return 'access';
-    if (id.includes('fw')) return 'firewall';
+    if (id.includes('fw') || id.includes('sec')) return 'firewall';
     if (id.includes('srv')) return 'server';
-    if (id.includes('ws')||id.includes('iot')) return 'workstation';
+    if (id.includes('ws') || id.includes('iot')) return 'workstation';
     return 'access';
 }
 
@@ -1331,14 +1994,14 @@ function connectSSE() {
     es.addEventListener('addNodeEvent', () => syncGraph());
     es.addEventListener('removeNodeEvent', () => syncGraph());
     es.addEventListener('addLinkEvent', () => syncGraph());
-    es.addEventListener('topologyResetEvent', () => { nodes=[]; links=[]; updateGraph(); });
+    es.addEventListener('chaosEvent', () => syncGraph());
+    es.addEventListener('topologyResetEvent', () => { nodes=[]; links=[]; activeFaults.clear(); updateGraph(); });
 }
 
 // ── Bootstrap ──
 initGraph();
 connectSSE();
 syncGraph();
-fetchAuditMini();
 </script>
 </body>
 </html>

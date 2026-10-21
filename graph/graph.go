@@ -296,6 +296,7 @@ func (g *NetworkGraph) IncrLink(src, dst string, newLink *NetworkLink) (*Network
 				srcNode: srcNode,
 				DstName: dstNode.Name,
 				dstNode: dstNode,
+				State:   "UP",
 			}
 		} else {
 			srcNode, _ := g.IncrNode(src, newLink.srcNode)
@@ -303,6 +304,9 @@ func (g *NetworkGraph) IncrLink(src, dst string, newLink *NetworkLink) (*Network
 			// update child pointers
 			newLink.srcNode = srcNode
 			newLink.dstNode = dstNode
+			if newLink.State == "" {
+				newLink.State = "UP"
+			}
 			l = newLink
 		}
 		g.LinksMap[key] = l
@@ -313,6 +317,43 @@ func (g *NetworkGraph) IncrLink(src, dst string, newLink *NetworkLink) (*Network
 	}
 	l.refCount++
 	return l, !ok
+}
+
+func (g *NetworkGraph) SetLinkState(src, dst string, state string) bool {
+	g.LinksLock.Lock()
+	defer g.LinksLock.Unlock()
+	updated := false
+	for _, key := range []string{src + ";" + dst, dst + ";" + src} {
+		if l, ok := g.LinksMap[key]; ok {
+			l.State = state
+			updated = true
+		}
+	}
+	return updated
+}
+
+func (g *NetworkGraph) IsLinkSevered(src, dst string) bool {
+	g.LinksLock.RLock()
+	defer g.LinksLock.RUnlock()
+	for _, key := range []string{src + ";" + dst, dst + ";" + src} {
+		if l, ok := g.LinksMap[key]; ok && l.State == "SEVERED" {
+			return true
+		}
+	}
+	return false
+}
+
+func (g *NetworkGraph) RestoreAllLinks() int {
+	g.LinksLock.Lock()
+	defer g.LinksLock.Unlock()
+	count := 0
+	for _, l := range g.LinksMap {
+		if l.State == "SEVERED" {
+			l.State = "UP"
+			count++
+		}
+	}
+	return count
 }
 
 func (g *NetworkGraph) GetLink(key string) *NetworkLink {

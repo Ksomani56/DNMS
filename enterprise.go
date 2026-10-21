@@ -180,8 +180,33 @@ func (r *EnterpriseRegistry) TracePacket(g *graph.NetworkGraph, src, dst, proto 
 
 	hops := r.findPath(g, src, dst)
 	if len(hops) == 0 {
-		// Fallback synthetic route via Core/Dist hierarchy if graph not yet indexed
-		hops = r.synthesizePath(src, dst)
+		traceID := fmt.Sprintf("trc-%d", time.Now().UnixNano())
+		result := &PacketTraceResult{
+			TraceID:     traceID,
+			Source:      src,
+			Destination: dst,
+			Protocol:    proto,
+			PayloadSize: payloadSize,
+			TotalHops:   0,
+			TotalRTTMs:  0,
+			Status:      "DROPPED",
+			PathHops:    []*HopTraceStep{},
+		}
+		if r.auditStore != nil {
+			r.auditStore.Record(&AuditEvent{
+				Node:        src,
+				Category:    "PACKET",
+				Action:      "PACKET_DROPPED",
+				Description: fmt.Sprintf("[%s] Packet to %s dropped: destination unreachable (links severed or no path)", proto, dst),
+				Level:       AuditLevelWarn,
+				Metadata: map[string]interface{}{
+					"trace_id": traceID,
+					"protocol": proto,
+					"status":   "DROPPED",
+				},
+			})
+		}
+		return result
 	}
 
 	traceID := fmt.Sprintf("trc-%d", time.Now().UnixNano())
@@ -283,7 +308,7 @@ func (r *EnterpriseRegistry) findPath(g *graph.NetworkGraph, src, dst string) []
 	g.LinksLock.RLock()
 	defer g.LinksLock.RUnlock()
 
-	// BFS path finding
+	// BFS path finding respecting link operational state
 	queue := [][]string{{src}}
 	visited := map[string]bool{src: true}
 
@@ -297,6 +322,9 @@ func (r *EnterpriseRegistry) findPath(g *graph.NetworkGraph, src, dst string) []
 		}
 
 		for _, l := range g.LinksMap {
+			if l.State == "SEVERED" {
+				continue
+			}
 			neighbor := ""
 			if l.SrcName == currNode {
 				neighbor = l.DstName

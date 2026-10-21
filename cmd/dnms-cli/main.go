@@ -182,6 +182,8 @@ func handleRoutes(client *http.Client, host string) {
 func handleChaos(client *http.Client, host, action, src, dst string) {
 	payload := map[string]string{
 		"action": action,
+		"src":    src,
+		"dst":    dst,
 		"source": src,
 		"target": dst,
 	}
