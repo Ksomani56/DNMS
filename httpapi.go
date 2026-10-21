@@ -20,11 +20,13 @@ import (
 type HTTPApi struct {
 	m *mapper.Mapper
 
-	eventBroker *eventsource.Server
-	history     *MessageHistory
-	localName   string
-	mlistGetter func() *memberlist.Memberlist
-	alertMgr    *AlertManager
+	eventBroker   *eventsource.Server
+	history       *MessageHistory
+	localName     string
+	mlistGetter   func() *memberlist.Memberlist
+	alertMgr      *AlertManager
+	auditStore    *AuditStore
+	enterpriseReg *EnterpriseRegistry
 }
 
 func NewHTTPApi(m *mapper.Mapper, localName string) *HTTPApi {
@@ -44,6 +46,14 @@ func (h *HTTPApi) SetMlistGetter(getter func() *memberlist.Memberlist) {
 
 func (h *HTTPApi) SetAlertManager(am *AlertManager) {
 	h.alertMgr = am
+}
+
+func (h *HTTPApi) SetAuditStore(as *AuditStore) {
+	h.auditStore = as
+}
+
+func (h *HTTPApi) SetEnterpriseRegistry(er *EnterpriseRegistry) {
+	h.enterpriseReg = er
 }
 
 func (h *HTTPApi) Start(ctx context.Context, mux *http.ServeMux) {
@@ -82,6 +92,27 @@ func (h *HTTPApi) Start(ctx context.Context, mux *http.ServeMux) {
 
 	// Client auto-registration
 	mux.HandleFunc("/v1/client/register", h.handleRegisterClient)
+
+	// Audit Trail endpoints
+	mux.HandleFunc("/v1/audit", h.handleListAudit)
+	mux.HandleFunc("/v1/audit/clear", h.handleClearAudit)
+
+	// Enterprise Node Management endpoints
+	mux.HandleFunc("/v1/nodes/add", h.handleAddNode)
+	mux.HandleFunc("/v1/nodes/remove", h.handleRemoveNode)
+	mux.HandleFunc("/v1/nodes/update", h.handleUpdateNode)
+	mux.HandleFunc("/v1/nodes/inventory", h.handleListInventory)
+
+	// Hop-by-Hop Packet Tracer endpoint
+	mux.HandleFunc("/v1/packet/trace", h.handlePacketTrace)
+
+	// Enterprise Analytics KPI summary endpoint
+	mux.HandleFunc("/v1/analytics/summary", h.handleAnalyticsSummary)
+
+	// Topology initialization & customization endpoints
+	mux.HandleFunc("/v1/topology/clear", h.handleClearTopology)
+	mux.HandleFunc("/v1/topology/load-enterprise", h.handleLoadEnterprise)
+	mux.HandleFunc("/v1/topology/setup-custom", h.handleSetupCustom)
 
 	// Web dashboard file serving
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -532,3 +563,381 @@ func (h *HTTPApi) handleChaosFault(w http.ResponseWriter, r *http.Request) {
 	h.setCommonHeaders(w)
 	json.NewEncoder(w).Encode(map[string]interface{}{"status": "applied", "fault": req})
 }
+
+func (h *HTTPApi) handleAddNode(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Name      string `json:"name"`
+		IP        string `json:"ip"`
+		Role      string `json:"role"`
+		Subnet    string `json:"subnet"`
+		VLAN      int    `json:"vlan"`
+		Rack      string `json:"rack"`
+		ConnectTo string `json:"connect_to"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if req.Name == "" {
+		http.Error(w, "name is required", http.StatusBadRequest)
+		return
+	}
+	if req.IP == "" {
+		req.IP = req.Name
+	}
+	if req.Role == "" {
+		req.Role = string(RoleAccess)
+	}
+
+	// Register node in Graph
+	h.m.Graph.IncrNode(req.Name, nil)
+
+	// If connect_to is provided, create link
+	if req.ConnectTo != "" {
+		h.m.Graph.IncrLink(req.ConnectTo, req.Name, nil)
+	}
+
+	// Register in Enterprise Registry
+	if h.enterpriseReg != nil {
+		h.enterpriseReg.Register(&EnterpriseNode{
+			Name:   req.Name,
+			IP:     req.IP,
+			Role:   NodeRole(req.Role),
+			Subnet: req.Subnet,
+			VLAN:   req.VLAN,
+			Rack:   req.Rack,
+			Status: "UP",
+		})
+	}
+
+	// Publish SSE events
+	h.eventBroker.Publish([]string{"mapper"}, MessageEvent{
+		EventName: "addNodeEvent",
+		Message:   &ClusterMessage{From: req.Name, Content: req.Name},
+	})
+	if req.ConnectTo != "" {
+		h.eventBroker.Publish([]string{"mapper"}, MessageEvent{
+			EventName: "addLinkEvent",
+			Message:   &ClusterMessage{From: req.ConnectTo, To: req.Name},
+		})
+	}
+
+	h.setCommonHeaders(w)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "provisioned",
+		"node":   req,
+	})
+}
+
+func (h *HTTPApi) handleRemoveNode(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost && r.Method != http.MethodDelete {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if req.Name == "" {
+		http.Error(w, "name is required", http.StatusBadRequest)
+		return
+	}
+
+	if h.enterpriseReg != nil {
+		h.enterpriseReg.Remove(req.Name)
+	}
+	h.m.Graph.DecrNode(req.Name)
+
+	h.eventBroker.Publish([]string{"mapper"}, MessageEvent{
+		EventName: "removeNodeEvent",
+		Message:   &ClusterMessage{From: req.Name, Content: req.Name},
+	})
+
+	h.setCommonHeaders(w)
+	json.NewEncoder(w).Encode(map[string]interface{}{"status": "decommissioned", "name": req.Name})
+}
+
+func (h *HTTPApi) handleUpdateNode(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost && r.Method != http.MethodPut {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Name   string `json:"name"`
+		IP     string `json:"ip"`
+		Role   string `json:"role"`
+		Subnet string `json:"subnet"`
+		Rack   string `json:"rack"`
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if req.Name == "" {
+		http.Error(w, "name is required", http.StatusBadRequest)
+		return
+	}
+
+	if h.enterpriseReg != nil {
+		if node := h.enterpriseReg.Get(req.Name); node != nil {
+			if req.IP != "" {
+				node.IP = req.IP
+			}
+			if req.Role != "" {
+				node.Role = NodeRole(req.Role)
+			}
+			if req.Subnet != "" {
+				node.Subnet = req.Subnet
+			}
+			if req.Rack != "" {
+				node.Rack = req.Rack
+			}
+			if req.Status != "" {
+				node.Status = req.Status
+			}
+			if h.auditStore != nil {
+				h.auditStore.Record(&AuditEvent{
+					Node:        req.Name,
+					Category:    "CONFIG",
+					Action:      "NODE_UPDATED",
+					Description: fmt.Sprintf("Node %s updated config: IP=%s, Role=%s, Subnet=%s", req.Name, node.IP, node.Role, node.Subnet),
+					Level:       AuditLevelInfo,
+				})
+			}
+		}
+	}
+
+	h.setCommonHeaders(w)
+	json.NewEncoder(w).Encode(map[string]interface{}{"status": "updated", "node": req})
+}
+
+func (h *HTTPApi) handleListInventory(w http.ResponseWriter, r *http.Request) {
+	h.setCommonHeaders(w)
+	if h.enterpriseReg == nil {
+		json.NewEncoder(w).Encode([]*EnterpriseNode{})
+		return
+	}
+	json.NewEncoder(w).Encode(h.enterpriseReg.All())
+}
+
+func (h *HTTPApi) handlePacketTrace(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Src         string `json:"src"`
+		Dst         string `json:"dst"`
+		Protocol    string `json:"protocol"`
+		PayloadSize int    `json:"payload_size"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if req.Src == "" || req.Dst == "" {
+		http.Error(w, "src and dst are required", http.StatusBadRequest)
+		return
+	}
+
+	if h.enterpriseReg == nil {
+		http.Error(w, "enterprise registry unavailable", http.StatusInternalServerError)
+		return
+	}
+
+	result := h.enterpriseReg.TracePacket(h.m.Graph, req.Src, req.Dst, req.Protocol, req.PayloadSize)
+
+	// Broadcast trace event to SSE so connected browser sessions animate the packet
+	h.eventBroker.Publish([]string{"mapper"}, MessageEvent{
+		EventName: "packetTracedEvent",
+		Message: &ClusterMessage{
+			ID:        result.TraceID,
+			From:      req.Src,
+			To:        req.Dst,
+			Content:   fmt.Sprintf("[%s] %d hops, %.2fms RTT", result.Protocol, result.TotalHops, result.TotalRTTMs),
+			Timestamp: time.Now().UnixMilli(),
+			LatencyMS: result.TotalRTTMs,
+		},
+	})
+
+	h.setCommonHeaders(w)
+	json.NewEncoder(w).Encode(result)
+}
+
+func (h *HTTPApi) handleAnalyticsSummary(w http.ResponseWriter, r *http.Request) {
+	h.setCommonHeaders(w)
+	if h.enterpriseReg == nil {
+		json.NewEncoder(w).Encode(map[string]interface{}{})
+		return
+	}
+	membersCount := 1
+	if h.mlistGetter != nil {
+		if ml := h.mlistGetter(); ml != nil {
+			membersCount = ml.NumMembers()
+		}
+	}
+	summary := h.enterpriseReg.GetAnalyticsSummary(h.m.Graph, h.alertMgr, membersCount)
+	json.NewEncoder(w).Encode(summary)
+}
+
+func (h *HTTPApi) handleClearTopology(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	h.m.Graph.NodesLock.Lock()
+	h.m.Graph.LinksLock.Lock()
+	h.m.Graph.RoutesLock.Lock()
+
+	h.m.Graph.RoutesMap = make(map[string]*graph.NetworkRoute)
+	h.m.Graph.LinksMap = make(map[string]*graph.NetworkLink)
+	h.m.Graph.NodesMap = make(map[string]*graph.NetworkNode)
+	if h.localName != "" {
+		h.m.Graph.NodesMap[h.localName] = graph.NewNetworkNode(h.localName, nil)
+	}
+
+	h.m.Graph.RoutesLock.Unlock()
+	h.m.Graph.LinksLock.Unlock()
+	h.m.Graph.NodesLock.Unlock()
+
+	if h.enterpriseReg != nil {
+		h.enterpriseReg.mu.Lock()
+		h.enterpriseReg.nodes = make(map[string]*EnterpriseNode)
+		if h.localName != "" {
+			h.enterpriseReg.nodes[h.localName] = &EnterpriseNode{
+				Name:   h.localName,
+				IP:     "127.0.0.1",
+				Role:   RoleCore,
+				Subnet: "10.0.0.0/24",
+				Status: "UP",
+			}
+		}
+		h.enterpriseReg.mu.Unlock()
+	}
+
+	if h.auditStore != nil {
+		h.auditStore.Record(&AuditEvent{
+			Node:        h.localName,
+			Category:    "LIFECYCLE",
+			Action:      "TOPOLOGY_CLEARED",
+			Description: "Topology reset to clean initial canvas state",
+			Level:       AuditLevelWarn,
+		})
+	}
+
+	h.eventBroker.Publish([]string{"mapper"}, MessageEvent{
+		EventName: "topologyResetEvent",
+		Message:   &ClusterMessage{From: h.localName, Content: "reset"},
+	})
+
+	h.setCommonHeaders(w)
+	json.NewEncoder(w).Encode(map[string]interface{}{"status": "cleared"})
+}
+
+func (h *HTTPApi) handleLoadEnterprise(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if h.enterpriseReg != nil {
+		PopulateEnterpriseDemo(context.Background(), h.m.Graph, h.enterpriseReg, h.localName)
+	}
+	h.setCommonHeaders(w)
+	json.NewEncoder(w).Encode(map[string]interface{}{"status": "loaded"})
+}
+
+func (h *HTTPApi) handleSetupCustom(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Cores        int `json:"cores"`
+		Switches     int `json:"switches"`
+		Workstations int `json:"workstations"`
+		Servers      int `json:"servers"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	coreCount := req.Cores
+	if coreCount <= 0 {
+		coreCount = 1
+	}
+
+	coreNames := make([]string, 0)
+	for i := 1; i <= coreCount; i++ {
+		cName := fmt.Sprintf("core-gw-%02d", i)
+		cIP := fmt.Sprintf("10.0.0.%d", i)
+		coreNames = append(coreNames, cName)
+		h.m.Graph.IncrNode(cName, nil)
+		if h.enterpriseReg != nil {
+			h.enterpriseReg.Register(&EnterpriseNode{Name: cName, IP: cIP, Role: RoleCore, Subnet: "10.0.0.0/24", VLAN: 10, Rack: fmt.Sprintf("CR-%02d", i), Status: "UP"})
+		}
+	}
+	for i := 0; i < len(coreNames)-1; i++ {
+		h.m.Graph.IncrLink(coreNames[i], coreNames[i+1], nil)
+	}
+
+	swNames := make([]string, 0)
+	for i := 1; i <= req.Switches; i++ {
+		sName := fmt.Sprintf("sw-dist-%02d", i)
+		sIP := fmt.Sprintf("10.0.1.%d", i)
+		swNames = append(swNames, sName)
+		h.m.Graph.IncrNode(sName, nil)
+		if h.enterpriseReg != nil {
+			h.enterpriseReg.Register(&EnterpriseNode{Name: sName, IP: sIP, Role: RoleDistribution, Subnet: "10.0.1.0/24", VLAN: 20, Rack: fmt.Sprintf("SW-%02d", i), Status: "UP"})
+		}
+		parentCore := coreNames[(i-1)%len(coreNames)]
+		h.m.Graph.IncrLink(parentCore, sName, nil)
+	}
+
+	for i := 1; i <= req.Servers; i++ {
+		srvName := fmt.Sprintf("srv-host-%02d", i)
+		srvIP := fmt.Sprintf("172.16.1.%d", 10+i)
+		h.m.Graph.IncrNode(srvName, nil)
+		if h.enterpriseReg != nil {
+			h.enterpriseReg.Register(&EnterpriseNode{Name: srvName, IP: srvIP, Role: RoleServer, Subnet: "172.16.1.0/24", VLAN: 100, Rack: fmt.Sprintf("SRV-%02d", i), Status: "UP"})
+		}
+		parent := coreNames[0]
+		if len(swNames) > 0 {
+			parent = swNames[(i-1)%len(swNames)]
+		}
+		h.m.Graph.IncrLink(parent, srvName, nil)
+	}
+
+	for i := 1; i <= req.Workstations; i++ {
+		wsName := fmt.Sprintf("ws-client-%02d", i)
+		wsIP := fmt.Sprintf("192.168.1.%d", 100+i)
+		h.m.Graph.IncrNode(wsName, nil)
+		if h.enterpriseReg != nil {
+			h.enterpriseReg.Register(&EnterpriseNode{Name: wsName, IP: wsIP, Role: RoleWorkstation, Subnet: "192.168.1.0/24", VLAN: 200, Rack: fmt.Sprintf("WS-%02d", i), Status: "UP"})
+		}
+		parent := coreNames[0]
+		if len(swNames) > 0 {
+			parent = swNames[(i-1)%len(swNames)]
+		}
+		h.m.Graph.IncrLink(parent, wsName, nil)
+	}
+
+	h.setCommonHeaders(w)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":       "custom_initialized",
+		"cores":        coreCount,
+		"switches":     req.Switches,
+		"servers":      req.Servers,
+		"workstations": req.Workstations,
+	})
+}
+
+

@@ -147,14 +147,21 @@ func main() {
 	m.SrcPortEnd = *mapSrcPortEnd
 	m.Start(ctx)
 
-	// If demo mode is active, populate simulated datacenter topology
+	// Initialize Audit Store & Enterprise Registry
+	auditStore := NewAuditStore(1000)
+	enterpriseReg := NewEnterpriseRegistry(auditStore)
+
+	// If demo mode is active, populate simulated datacenter and enterprise campus topology
 	if *demoMode {
 		StartDemoSimulator(ctx, m.Graph, cfg.AdvertiseAddr)
+		PopulateEnterpriseDemo(ctx, m.Graph, enterpriseReg, cfg.AdvertiseAddr)
 	}
 
 	// Start HTTP APIs
 	mux := http.NewServeMux()
 	api := NewHTTPApi(m, localIdentity)
+	api.SetAuditStore(auditStore)
+	api.SetEnterpriseRegistry(enterpriseReg)
 	api.Start(ctx, mux)
 
 	// If we are an aggregator start that
@@ -192,6 +199,13 @@ func main() {
 			Content:   fmt.Sprintf("[%s] %s: %s", alert.Severity, alert.Title, alert.Message),
 			Timestamp: alert.Timestamp,
 		}, "alertEvent")
+		auditStore.Record(&AuditEvent{
+			Node:        alert.Entity,
+			Category:    "ALERT",
+			Action:      string(alert.Type),
+			Description: fmt.Sprintf("[%s] %s: %s", alert.Severity, alert.Title, alert.Message),
+			Level:       AuditLevelCrit,
+		})
 	})
 	alertMgr.StartEvaluationLoop(ctx, func() []LinkHealthRow {
 		m.Graph.LinksLock.RLock()
@@ -209,6 +223,13 @@ func main() {
 	delegate.OnMessageReceived = func(msg *ClusterMessage) {
 		api.history.Add(msg)
 		api.PublishMessage(msg, "messageReceivedEvent")
+		auditStore.Record(&AuditEvent{
+			Node:        msg.To,
+			Category:    "PACKET",
+			Action:      "PACKET_RECV",
+			Description: fmt.Sprintf("Cluster message received from %s (RTT: %.2fms): %s", msg.From, msg.LatencyMS, msg.Content),
+			Level:       AuditLevelInfo,
+		})
 	}
 	api.SetMlistGetter(delegate.Mlist)
 

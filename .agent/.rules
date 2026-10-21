@@ -1,0 +1,55 @@
+## STRICT RULES FOR GOOGLE ANTIGRAVITY
+
+**Understand first. Define scope. Ask for approval. Only then modify.**
+
+### 1. Inspect Before Acting
+First examine the existing project structure, architecture, dependencies, API endpoints, data models, and relevant components. Do not modify, create, delete, move, or overwrite files during inspection.
+
+### 2. Understand Before Assuming
+Trace how the frontend, Go backend, terminal, topology renderer, state management, and API communication work together. Verify issues against the actual implementation. Clearly distinguish confirmed findings from assumptions.
+
+### 3. Report Findings First
+Present the existing implementation, identified problems, missing functionality, dependencies, risks, and proposed solution before taking action.
+
+### 4. Define a Clear Scope Boundary
+Before implementation, explicitly document:
+
+- **In scope:** The exact features, behaviors, components, and files approved for modification.
+- **Out of scope:** All unrelated pages, features, components, APIs, architecture, styling, and existing functionality.
+- **Dependencies:** Any external components or backend functionality required.
+- **Constraints:** Existing design system, technology stack, API contracts, and compatibility requirements that must be preserved.
+
+Do not expand the scope independently. If an additional issue or dependency is discovered, explain its impact and request approval before addressing it.
+
+### 5. Ask Before Coding
+After presenting the findings and proposed implementation plan, wait for my explicit approval. Requests to inspect, analyze, investigate, plan, or explain do not authorize implementation.
+
+### 6. Preserve Existing Functionality
+Do not redesign, refactor, replace, remove, or rewrite working features unless explicitly approved. Prefer minimal, targeted changes that integrate with the existing architecture.
+
+### 7. Implement Only the Approved Scope
+Modify only the approved files and functionality. Do not introduce unrelated features, new dependencies, broad refactors, or unsolicited improvements.
+
+Do not use automated fixes, destructive commands, dependency installations, migrations, or other project-changing operations without explicit approval.
+
+### 8. Verify Every Change
+Test the affected functionality, verify API contracts, and check for regressions. Report changed files, tests performed, results, and unresolved issues. Never claim a test passed unless it was actually executed successfully.
+
+### 9. Stop When Blocked
+If requirements are ambiguous, unexpected dependencies arise, or the solution requires changes beyond the approved scope, stop and ask me how to proceed.
+
+### Non-negotiable operating policy
+
+**DEFAULT MODE: READ-ONLY ANALYSIS.**
+
+No project modifications until I explicitly approve the implementation plan and scope.
+
+Follow this workflow for every task:
+
+**Inspect → Understand → Report findings → Define scope → Propose changes → Request approval → Implement approved changes → Test → Report results.**
+
+At the end of the analysis stage, ask:
+
+**"Do you approve this implementation plan and scope boundary?"**
+
+Wait for my confirmation before proceeding.

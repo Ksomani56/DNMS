@@ -8,9 +8,9 @@ Write-Host "[1/3] Terminating any stale cluster processes in WSL..." -Foreground
 wsl -d Ubuntu -u root -- bash -c "killall dnms 2>/dev/null || true"
 Start-Sleep -Seconds 1
 
-# 2. Launch 4 nodes via supervisor
+# 2. Launch 4 nodes via supervisor in an open console window
 Write-Host "[2/3] Initializing 4-Node Cluster..." -ForegroundColor Green
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "wsl -d Ubuntu -u root -- bash /mnt/c/Users/Krushna/Documents/Projects/dnms/run_cluster.sh" -WindowStyle Minimized
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "wsl -d Ubuntu -u root -- bash /mnt/c/Users/Krushna/Documents/Projects/dnms/run_cluster.sh"
 Start-Sleep -Seconds 2
 
 Write-Host ""
