@@ -562,6 +562,7 @@ func (h *HTTPApi) handleChaosFault(w http.ResponseWriter, r *http.Request) {
 	act := strings.ToLower(req.Action)
 	if act == "heal" || act == "restore_all" || act == "up_all" || ((act == "restore" || act == "up") && req.Src == "" && req.Dst == "") {
 		restoredCount := h.m.Graph.RestoreAllLinks()
+		h.m.Graph.ResetAllRouteMetrics()
 		logrus.Infof("[FAULT_SIMULATION] Restored all links (%d restored to UP)", restoredCount)
 		if h.auditStore != nil {
 			h.auditStore.Record(&AuditEvent{
@@ -598,6 +599,7 @@ func (h *HTTPApi) handleChaosFault(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		h.m.Graph.SetLinkState(req.Src, req.Dst, "UP")
+		h.m.Graph.ResetRoutesForLink(req.Src, req.Dst)
 		logrus.Infof("[FAULT_SIMULATION] Link operational up: [%s <-> %s]", req.Src, req.Dst)
 		if h.auditStore != nil {
 			h.auditStore.Record(&AuditEvent{

@@ -7,7 +7,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Code+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js">    // Auto-poll analytics telemetry every 2 seconds when user views Analytics tab
+    setInterval(() => {
+        const p = document.getElementById('pane-analytics');
+        if (p && p.classList.contains('active')) {
+            fetchAnalytics();
+        }
+    }, 2000);
+</script>
     <style>
         :root {
             --bg-base: #0a0a0a;
@@ -2421,7 +2428,7 @@ function linkClass(d) {
     else if (sRole === 'distribution' || tRole === 'distribution') tier = 'distribution';
 
     let c = 'link-line ' + tier;
-    if (d.state === 'SEVERED' || activeFaults.has(s+';'+t) || activeFaults.has(t+';'+s)) {
+    if (d.state === 'SEVERED' || d.state === 'DOWN' || activeFaults.has(s+';'+t) || activeFaults.has(t+';'+s)) {
         c += ' severed';
     } else {
         c += ' flowing';
@@ -2432,7 +2439,7 @@ function linkClass(d) {
 function showLinkTooltip(e, d) {
     const s = d.source.id || d.source;
     const t = d.target.id || d.target;
-    const isSev = d.state === 'SEVERED' || activeFaults.has(s+';'+t) || activeFaults.has(t+';'+s);
+    const isSev = d.state === 'SEVERED' || d.state === 'DOWN' || activeFaults.has(s+';'+t) || activeFaults.has(t+';'+s);
     toast(`${s} ↔ ${t} | Status: ${isSev ? 'SEVERED' : 'UP'} | Latency: 1.2ms`);
 }
 function hideLinkTooltip() {}
@@ -2534,7 +2541,7 @@ function renderLinkMonitor() {
     links.forEach(l => {
         const s = l.source.id || l.source;
         const t = l.target.id || l.target;
-        const isSev = l.state === 'SEVERED' || activeFaults.has(s+';'+t) || activeFaults.has(t+';'+s);
+        const isSev = l.state === 'SEVERED' || l.state === 'DOWN' || activeFaults.has(s+';'+t) || activeFaults.has(t+';'+s);
         if (isSev) severedCount++; else upCount++;
 
         const sNode = nodes.find(n => n.id === s);
@@ -3338,14 +3345,18 @@ async function applyChaosAction(act, s, d) {
         });
     } catch(e) {}
 
-    if (act === 'sever') {
+    const isCut = (act === 'sever' || act === 'down' || act === 'cut' || act === 'admin_down');
+    if (isCut) {
         activeFaults.add(s+';'+d);
+        activeFaults.add(d+';'+s);
     } else {
         activeFaults.delete(s+';'+d);
         activeFaults.delete(d+';'+s);
     }
     syncGraph();
     renderSevered();
+    renderSidebarLinks();
+    fetchAnalytics();
     toast(`${act.toUpperCase()}: ${s} ↔ ${d}`);
 }
 
@@ -3360,6 +3371,8 @@ async function restoreAllLinks() {
     activeFaults.clear();
     syncGraph();
     renderSevered();
+    renderSidebarLinks();
+    fetchAnalytics();
     toast('All links restored');
 }
 

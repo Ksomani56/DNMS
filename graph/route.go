@@ -55,6 +55,13 @@ func (r *NetworkRoute) MetricsSummary() MetricSummary {
 	return r.metrics.summary()
 }
 
+func (r *NetworkRoute) ResetMetrics() {
+	r.metrics = newMetricsRing()
+	r.stateMu.Lock()
+	r.State = Up
+	r.stateMu.Unlock()
+}
+
 func (r *NetworkRoute) Key() string {
 	h := md5.New()
 	for _, node := range r.path {

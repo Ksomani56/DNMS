@@ -356,6 +356,32 @@ func (g *NetworkGraph) RestoreAllLinks() int {
 	return count
 }
 
+func (g *NetworkGraph) ResetRoutesForLink(src, dst string) {
+	g.RoutesLock.RLock()
+	defer g.RoutesLock.RUnlock()
+	for _, rt := range g.RoutesMap {
+		if rt == nil {
+			continue
+		}
+		for j := 0; j < len(rt.Path)-1; j++ {
+			if (rt.Path[j] == src && rt.Path[j+1] == dst) || (rt.Path[j] == dst && rt.Path[j+1] == src) {
+				rt.ResetMetrics()
+				break
+			}
+		}
+	}
+}
+
+func (g *NetworkGraph) ResetAllRouteMetrics() {
+	g.RoutesLock.RLock()
+	defer g.RoutesLock.RUnlock()
+	for _, rt := range g.RoutesMap {
+		if rt != nil {
+			rt.ResetMetrics()
+		}
+	}
+}
+
 func (g *NetworkGraph) GetLink(key string) *NetworkLink {
 	g.LinksLock.RLock()
 	defer g.LinksLock.RUnlock()
