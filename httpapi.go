@@ -615,13 +615,14 @@ func (h *HTTPApi) handleAddNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Name      string `json:"name"`
-		IP        string `json:"ip"`
-		Role      string `json:"role"`
-		Subnet    string `json:"subnet"`
-		VLAN      int    `json:"vlan"`
-		Rack      string `json:"rack"`
-		ConnectTo string `json:"connect_to"`
+		Name       string `json:"name"`
+		IP         string `json:"ip"`
+		Role       string `json:"role"`
+		Department string `json:"department"`
+		Subnet     string `json:"subnet"`
+		VLAN       int    `json:"vlan"`
+		Rack       string `json:"rack"`
+		ConnectTo  string `json:"connect_to"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -649,13 +650,14 @@ func (h *HTTPApi) handleAddNode(w http.ResponseWriter, r *http.Request) {
 	// Register in Enterprise Registry
 	if h.enterpriseReg != nil {
 		h.enterpriseReg.Register(&EnterpriseNode{
-			Name:   req.Name,
-			IP:     req.IP,
-			Role:   NodeRole(req.Role),
-			Subnet: req.Subnet,
-			VLAN:   req.VLAN,
-			Rack:   req.Rack,
-			Status: "UP",
+			Name:       req.Name,
+			IP:         req.IP,
+			Role:       NodeRole(req.Role),
+			Department: req.Department,
+			Subnet:     req.Subnet,
+			VLAN:       req.VLAN,
+			Rack:       req.Rack,
+			Status:     "UP",
 		})
 	}
 

@@ -252,22 +252,31 @@
         .insp-table td:first-child { color: var(--text-tertiary); font-size: 11px; width: 110px; }
         .insp-table td:last-child { color: var(--text-primary); font-weight: 600; text-align: right; }
 
-        /* Right sidebar: CLI + Packet Tracer + Mini Audit */
+        /* Right sidebar: Spacious 2-section layout */
         .sidebar {
             display: flex;
             flex-direction: column;
             background: var(--bg-surface);
             overflow: hidden;
+            height: 100%;
         }
 
         .sidebar-section {
             display: flex;
             flex-direction: column;
-            border-bottom: 1px solid var(--border-dim);
             overflow: hidden;
         }
 
-        .sidebar-section.flex-grow { flex: 1; min-height: 0; }
+        .sidebar-section.tracer-section {
+            flex: 1.1;
+            border-bottom: 1px solid var(--border-dim);
+            min-height: 0;
+        }
+
+        .sidebar-section.monitor-section {
+            flex: 1.3;
+            min-height: 0;
+        }
 
         .section-header {
             display: flex;
@@ -286,28 +295,106 @@
             text-transform: uppercase;
         }
 
-        /* Terminal */
+        /* Detached Floating Linux CLI Window */
+        #cli-floating-win {
+            position: fixed;
+            top: 72px;
+            left: 50%;
+            transform: translateX(-50%) scale(0.96);
+            width: 780px;
+            max-width: 94vw;
+            height: 480px;
+            max-height: 82vh;
+            background: rgba(14, 15, 18, 0.94);
+            border: 1px solid var(--border-vis);
+            border-radius: 8px;
+            box-shadow: 0 28px 70px rgba(0,0,0,0.88), 0 0 0 1px rgba(255,255,255,0.06);
+            backdrop-filter: blur(14px);
+            z-index: 550;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 180ms ease-out, transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+            user-select: none;
+        }
+        #cli-floating-win.open {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: translateX(-50%) scale(1);
+        }
+        #cli-floating-win.dragged {
+            transform: scale(1);
+        }
+        .cli-window-header {
+            padding: 9px 14px;
+            background: rgba(24, 25, 30, 0.98);
+            border-bottom: 1px solid var(--border-dim);
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: grab;
+            flex-shrink: 0;
+        }
+        .cli-window-header:active {
+            cursor: grabbing;
+        }
+        .window-dots {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .window-dot {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            display: inline-block;
+            cursor: pointer;
+            transition: opacity 120ms ease;
+        }
+        .window-dot:hover { opacity: 0.8; }
+        .window-dot.close { background: #ef4444; }
+        .window-dot.min { background: #eab308; }
+        .window-dot.max { background: #22c55e; }
+        .cli-window-title {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+            pointer-events: none;
+        }
+        .cli-window-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
         .term-body {
             flex: 1;
             min-height: 0;
             overflow-y: auto;
-            padding: 10px 14px;
+            padding: 12px 16px;
             font-family: var(--font-mono);
             font-size: 12px;
-            line-height: 1.55;
+            line-height: 1.6;
             color: var(--text-secondary);
             white-space: pre-wrap;
             word-break: break-word;
             background: var(--bg-input);
+            user-select: text;
         }
 
         .term-input-bar {
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 8px 14px;
+            gap: 8px;
+            padding: 10px 16px;
             background: var(--bg-raised);
             border-top: 1px solid var(--border-dim);
+            border-radius: 0 0 8px 8px;
             flex-shrink: 0;
         }
         .term-prompt { color: var(--green); font-weight: 700; font-size: 12px; font-family: var(--font-mono); white-space: nowrap; }
@@ -321,20 +408,78 @@
             font-size: 12.5px;
         }
 
-        /* Packet tracer mini */
+        /* ── Project-Wide Cyber Animations ── */
+        @keyframes linkDashFlow {
+            from { stroke-dashoffset: 24; }
+            to { stroke-dashoffset: 0; }
+        }
+        .link-line.flowing {
+            stroke-dasharray: 6 6;
+            animation: linkDashFlow 1.8s linear infinite;
+        }
+        .link-line.core.flowing {
+            stroke-dasharray: 8 6;
+            animation: linkDashFlow 1.2s linear infinite;
+        }
+
+        @keyframes spawnRipple {
+            0% { r: 20px; opacity: 1; stroke-width: 3px; }
+            100% { r: 64px; opacity: 0; stroke-width: 0.5px; }
+        }
+        .spawn-ring {
+            fill: none;
+            stroke: var(--cyan);
+            animation: spawnRipple 750ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            pointer-events: none;
+        }
+        .spawn-ring.core { stroke: #c084fc; }
+        .spawn-ring.dist { stroke: #38bdf8; }
+        .spawn-ring.server { stroke: #4ade80; }
+
+        @keyframes laserCabling {
+            0% { stroke-dashoffset: 100%; opacity: 0; }
+            40% { opacity: 1; }
+            100% { stroke-dashoffset: 0; opacity: 1; }
+        }
+        .laser-cable {
+            stroke: var(--green);
+            stroke-width: 2.5px;
+            stroke-linecap: round;
+            filter: drop-shadow(0 0 6px var(--green));
+            animation: laserCabling 450ms ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes hopImpact {
+            0% { r: 6px; opacity: 1; stroke-width: 2.5px; }
+            100% { r: 36px; opacity: 0; stroke-width: 0.5px; }
+        }
+        .hop-burst {
+            fill: none;
+            stroke: #38bdf8;
+            animation: hopImpact 500ms ease-out forwards;
+            pointer-events: none;
+        }
+
+        /* Responsive micro-press feedback */
+        .btn:active, .btn-solid:active, .c-btn:active, .stepper-btn:active, .preset-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* Packet Tracer */
         .tracer-controls {
-            padding: 10px 14px;
+            padding: 12px 14px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
         }
-        .tracer-row { display: flex; gap: 6px; align-items: center; }
+        .tracer-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
         .tracer-hops {
-            padding: 8px 14px;
+            padding: 10px 14px;
             overflow-x: auto;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             flex: 1;
             min-height: 0;
         }
@@ -354,11 +499,243 @@
         .hop-chip .hop-detail { color: var(--text-tertiary); font-size: 10px; }
         .hop-arrow { color: var(--text-tertiary); font-size: 14px; }
 
-        /* Audit mini */
-        .audit-mini {
-            flex: 1;
-            overflow-y: auto;
-            min-height: 0;
+        /* Educational Question Tooltips */
+        .tooltip-trigger {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: #222;
+            color: var(--text-tertiary);
+            font-size: 9px;
+            font-weight: 700;
+            cursor: help;
+            margin-left: 4px;
+            border: 1px solid var(--border-mid);
+            position: relative;
+            vertical-align: middle;
+        }
+        .tooltip-trigger:hover {
+            color: var(--green);
+            border-color: var(--green-dim);
+            background: #141414;
+        }
+        .tooltip-card {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #181818;
+            border: 1px solid var(--border-vis);
+            border-radius: 4px;
+            padding: 8px 11px;
+            font-size: 10.5px;
+            font-weight: 400;
+            color: var(--text-primary);
+            width: 220px;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 120ms ease;
+            z-index: 9999;
+            box-shadow: 0 10px 28px rgba(0,0,0,0.85);
+            text-align: left;
+            line-height: 1.45;
+            font-family: var(--font-sans);
+            white-space: normal;
+        }
+        .tooltip-trigger:hover .tooltip-card {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Builder Table */
+        .builder-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            font-family: var(--font-mono);
+        }
+        .builder-table th {
+            padding: 8px 10px;
+            text-align: left;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-tertiary);
+            background: var(--bg-raised);
+            border-bottom: 1px solid var(--border-dim);
+            letter-spacing: 0.3px;
+        }
+        .builder-table td {
+            padding: 6px 8px;
+            border-bottom: 1px solid var(--border-dim);
+        }
+        .builder-table tr:hover td { background: var(--bg-overlay); }
+        .builder-input, .builder-select {
+            width: 100%;
+            padding: 4px 6px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-dim);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            border-radius: 2px;
+            outline: none;
+        }
+        .builder-input:focus, .builder-select:focus { border-color: var(--border-vis); }
+
+        /* ── Modular Architecture Blueprint Styles (No Emojis) ── */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .preset-btn {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-dim);
+            border-radius: 5px;
+            padding: 9px 12px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 140ms ease-out;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .preset-btn:hover {
+            border-color: var(--border-vis);
+            background: var(--bg-raised);
+        }
+        .preset-btn.active {
+            border-color: var(--green);
+            background: rgba(34, 197, 94, 0.08);
+        }
+        .preset-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .preset-desc {
+            font-size: 10.5px;
+            color: var(--text-tertiary);
+            line-height: 1.35;
+        }
+
+        .dept-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .dept-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-dim);
+            border-radius: 5px;
+            padding: 11px 13px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            transition: border-color 140ms ease;
+        }
+        .dept-card:hover {
+            border-color: var(--border-mid);
+        }
+        .dept-card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+        .dept-tag {
+            font-family: var(--font-mono);
+            font-size: 9.5px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            background: var(--bg-base);
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid var(--border-dim);
+            letter-spacing: 0.5px;
+        }
+        .dept-name {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+        }
+        .dept-sub {
+            font-size: 10.5px;
+            color: var(--text-tertiary);
+        }
+        .dept-stepper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-base);
+            border: 1px solid var(--border-dim);
+            border-radius: 4px;
+            padding: 4px 6px;
+            margin-top: 4px;
+        }
+        .stepper-btn {
+            width: 26px;
+            height: 24px;
+            background: var(--bg-raised);
+            border: 1px solid var(--border-mid);
+            color: var(--text-primary);
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 120ms ease;
+        }
+        .stepper-btn:hover {
+            border-color: var(--border-vis);
+            color: var(--green);
+        }
+        .stepper-val {
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .blueprint-summary-bar {
+            background: var(--bg-raised);
+            border: 1px solid var(--border-dim);
+            border-radius: 4px;
+            padding: 9px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11.5px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .blueprint-chips {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .bp-chip {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            padding: 2px 7px;
+            border-radius: 3px;
+            background: var(--bg-base);
+            border: 1px solid var(--border-dim);
+            color: var(--text-secondary);
         }
 
         /* ── SHARED COMPONENTS ── */
@@ -736,6 +1113,35 @@
 </head>
 <body>
 
+<!-- Detached Floating Linux CLI Window -->
+<div id="cli-floating-win">
+    <div class="cli-window-header" id="cli-win-drag-handle">
+        <div class="window-dots">
+            <span class="window-dot close" onclick="toggleCliDrawer(false)" title="Close"></span>
+            <span class="window-dot min" onclick="toggleCliDrawer(false)" title="Minimize"></span>
+            <span class="window-dot max" onclick="resetCliPosition()" title="Center Window"></span>
+        </div>
+        <div class="cli-window-title">
+            <span style="color:var(--green)">[TERM]</span>
+            <span>cluster-diagnostics@dnms-host:~</span>
+        </div>
+        <div class="cli-window-actions">
+            <button class="btn" style="padding:2px 8px;font-size:10px;" onclick="document.getElementById('term-screen').innerHTML=''">Clear</button>
+            <button class="btn" style="padding:2px 8px;font-size:10px;" onclick="toggleCliDrawer(false)">Close (Esc)</button>
+        </div>
+    </div>
+    <div class="term-body" id="term-screen">DNMS Linux Terminal Subsystem v2.5
+Type 'help' for available commands, or press Tab for ghost-text autocomplete.
+</div>
+    <div class="term-input-bar">
+        <span class="term-prompt">$</span>
+        <div class="term-input-container">
+            <input type="text" id="term-in" class="term-input" placeholder="help, nodes, add <name> <ip> <role>, trace <src> <dst>, cut <n1> <n2> ..." onkeydown="handleTermKey(event)" oninput="handleTermInput(event)" autocomplete="off" spellcheck="false" />
+            <div id="term-ghost" class="term-ghost"></div>
+        </div>
+    </div>
+</div>
+
 <!-- Header -->
 <div id="header">
     <div class="header-left">
@@ -748,7 +1154,8 @@
             <div class="stat"><span class="stat-label">Status</span><span class="stat-value" style="color:var(--green)">Online</span></div>
         </div>
     </div>
-    <div style="display:flex;gap:6px;">
+    <div style="display:flex;gap:6px;align-items:center;">
+        <button class="btn" id="btn-cli-toggle" onclick="toggleCliDrawer()" style="display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;font-weight:700;"><span style="color:var(--green)">$_</span> CLI</button>
         <button class="btn btn-red" onclick="resetToEmptyCanvas()">Clear All</button>
         <button class="btn btn-green" onclick="openEnterpriseModal()">Load Enterprise</button>
     </div>
@@ -770,7 +1177,16 @@
         <div class="main-layout">
             <!-- Left: Topology Canvas -->
             <div class="canvas-area">
-                <svg id="graph-svg"><g id="canvas-root"></g></svg>
+                <svg id="graph-svg">
+                    <defs>
+                        <pattern id="cyber-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+                            <path d="M 32 0 L 0 0 0 32" fill="none" stroke="rgba(255, 255, 255, 0.025)" stroke-width="1"/>
+                            <circle cx="32" cy="32" r="1" fill="rgba(255, 255, 255, 0.06)" />
+                        </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#cyber-grid)" pointer-events="none" />
+                    <g id="canvas-root"></g>
+                </svg>
 
                 <div class="canvas-controls">
                     <button class="c-btn on" onclick="setLayout('force')">Force</button>
@@ -800,10 +1216,10 @@
                 <!-- Empty state -->
                 <div class="empty-state" id="empty-box">
                     <h2>No Nodes Active</h2>
-                    <p>The network is empty. Use the terminal on the right to add nodes, or configure an enterprise topology.</p>
+                    <p>The network is empty. Click Load Enterprise to build a topology or open the CLI to add nodes.</p>
                     <div class="empty-actions">
-                        <button class="btn btn-green" onclick="openEnterpriseModal()">Deploy Enterprise Network</button>
-                        <button class="btn" onclick="document.getElementById('term-in').focus()">Open Terminal</button>
+                        <button class="btn btn-green" onclick="openEnterpriseModal()">Configure Enterprise Network</button>
+                        <button class="btn" onclick="toggleCliDrawer()">Open CLI Terminal</button>
                     </div>
                 </div>
 
@@ -815,10 +1231,12 @@
                     </div>
                     <table class="insp-table">
                         <tr><td>Hostname</td><td id="insp-name">--</td></tr>
-                        <tr><td>IPv4</td><td id="insp-ip">--</td></tr>
-                        <tr><td>Role</td><td id="insp-role">--</td></tr>
-                        <tr><td>Status</td><td id="insp-status" style="color:var(--green)">Online</td></tr>
-                        <tr><td>RTT</td><td id="insp-rtt">--</td></tr>
+                        <tr><td>IPv4 Address</td><td id="insp-ip">--</td></tr>
+                        <tr><td>Device Role</td><td id="insp-role">--</td></tr>
+                        <tr><td>Department</td><td id="insp-dept">--</td></tr>
+                        <tr><td>Location / Rack</td><td id="insp-rack">--</td></tr>
+                        <tr><td>Operational State</td><td id="insp-status" style="color:var(--green)">Online</td></tr>
+                        <tr><td>RTT Latency</td><td id="insp-rtt">--</td></tr>
                     </table>
                     <div style="margin-top:auto;display:flex;gap:6px;">
                         <button class="btn-solid" style="flex:1" onclick="traceFromInspector()">Trace Route</button>
@@ -827,60 +1245,42 @@
                 </div>
             </div>
 
-            <!-- Right: Sidebar with Terminal + Tracer + Active Link Monitor -->
+            <!-- Right: Spacious 2-Section Sidebar (No Cramped Terminal) -->
             <div class="sidebar">
-                <!-- CLI Terminal -->
-                <div class="sidebar-section flex-grow" style="flex:2;">
-                    <div class="section-header">
-                        <h4>Terminal</h4>
-                        <button class="btn" style="padding:2px 8px;font-size:10px;" onclick="document.getElementById('term-screen').innerHTML=''">Clear</button>
-                    </div>
-                    <div class="term-body" id="term-screen">DNMS Terminal v2.4
-Type 'help' for command registry or press Tab for autocomplete.
-</div>
-                    <div class="term-input-bar">
-                        <span class="term-prompt">$</span>
-                        <div class="term-input-container">
-                            <input type="text" id="term-in" class="term-input" placeholder="help, nodes, add <name> <ip> <role>, trace ..." onkeydown="handleTermKey(event)" oninput="handleTermInput(event)" autocomplete="off" spellcheck="false" />
-                            <div id="term-ghost" class="term-ghost"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Packet Tracer -->
-                <div class="sidebar-section" style="min-height: 190px;">
+                <!-- Section 1: Packet & Route Tracer (Top Half) -->
+                <div class="sidebar-section tracer-section">
                     <div class="section-header">
                         <h4>Packet & Route Tracer</h4>
                         <span id="trc-status" style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);">Ready</span>
                     </div>
                     <div class="tracer-controls">
                         <div class="tracer-row">
-                            <div class="form-group" style="flex:1;">
-                                <label class="form-label">Source</label>
+                            <div class="form-group" style="flex:1;min-width:110px;">
+                                <label class="form-label">Source Node</label>
                                 <select id="trc-src" class="form-select"></select>
                             </div>
-                            <div class="form-group" style="flex:1;">
-                                <label class="form-label">Destination</label>
+                            <div class="form-group" style="flex:1;min-width:110px;">
+                                <label class="form-label">Destination Node</label>
                                 <select id="trc-dst" class="form-select"></select>
                             </div>
-                            <div class="form-group" style="width:65px;">
-                                <label class="form-label">Proto</label>
+                            <div class="form-group" style="width:75px;">
+                                <label class="form-label">Protocol</label>
                                 <select id="trc-proto" class="form-select">
                                     <option value="ICMP">ICMP</option>
                                     <option value="TCP">TCP</option>
                                     <option value="UDP">UDP</option>
                                 </select>
                             </div>
-                            <button class="btn-solid" style="align-self:flex-end;white-space:nowrap;" onclick="runPacketTrace()">Trace</button>
+                            <button class="btn-solid" style="height:28px;" onclick="runPacketTrace()">Initiate Trace</button>
                         </div>
                     </div>
                     <div class="tracer-hops" id="trace-hops">
-                        <span style="color:var(--text-tertiary);font-size:11px;">Select source and destination, then click Trace.</span>
+                        <span style="color:var(--text-tertiary);font-size:11px;">Select source and destination, then click Initiate Trace.</span>
                     </div>
                 </div>
 
-                <!-- Active Link & Interface Monitor (Replaces Mini Audit) -->
-                <div class="sidebar-section" style="flex:1.4;min-height:140px;">
+                <!-- Section 2: Active Link & Interface Monitor (Bottom Half) -->
+                <div class="sidebar-section monitor-section">
                     <div class="section-header">
                         <div style="display:flex;align-items:center;gap:8px;">
                             <h4>Link & Interface Monitor</h4>
@@ -890,7 +1290,7 @@ Type 'help' for command registry or press Tab for autocomplete.
                         <button class="btn" style="padding:2px 8px;font-size:10px;" onclick="renderLinkMonitor()">Refresh</button>
                     </div>
                     <div class="link-monitor" id="link-monitor-body">
-                        <div style="color:var(--text-tertiary);font-size:11px;padding:8px;">No active links. Load network to view telemetry.</div>
+                        <div style="color:var(--text-tertiary);font-size:11px;padding:12px;">No active links. Load network to view telemetry.</div>
                     </div>
                 </div>
             </div>
@@ -1001,41 +1401,168 @@ Type 'help' for command registry or press Tab for autocomplete.
 
 </div>
 
-<!-- Enterprise Provisioning Modal -->
+<!-- Modular Enterprise Architecture Blueprint Modal -->
 <div id="enterprise-modal" class="modal-backdrop">
-    <div class="modal-card">
+    <div class="modal-card" style="width:860px;max-width:95vw;max-height:88vh;">
         <div class="modal-header">
-            <h3>Deploy Enterprise Campus Network</h3>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h3>Enterprise Network Architect</h3>
+                <span style="font-size:10px;color:var(--text-tertiary);font-family:var(--font-mono);background:var(--bg-base);padding:2px 8px;border-radius:3px;">Modular Topology Blueprint</span>
+            </div>
             <button class="btn" style="padding:2px 8px;" onclick="closeEnterpriseModal()">&times;</button>
         </div>
-        <div class="modal-body">
-            <div style="font-size:12px;color:var(--text-secondary);line-height:1.5;">
-                Configure hierarchical tier counts. Subnets (VLAN 10 Backbone, VLAN 20 Distribution, VLAN 100 Servers, VLAN 200 Workstations) are automatically generated.
+        <div class="modal-body" style="overflow-y:auto;gap:14px;">
+            <!-- Step 1: Architecture Preset Selection -->
+            <div>
+                <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">1. Choose Architecture Blueprint</div>
+                <div class="preset-grid">
+                    <div id="preset-campus" class="preset-btn active" onclick="selectPreset('campus')">
+                        <span class="preset-title">Campus Enterprise <span class="dept-tag">Multi-Tier</span></span>
+                        <span class="preset-desc">Border gateway router, edge firewall, server farm, and departmental switch pods.</span>
+                    </div>
+                    <div id="preset-spineleaf" class="preset-btn" onclick="selectPreset('spineleaf')">
+                        <span class="preset-title">Spine-Leaf Fabric <span class="dept-tag">Data Center</span></span>
+                        <span class="preset-desc">Dual spine switches with high-density compute, database clusters, and low latency.</span>
+                    </div>
+                    <div id="preset-branch" class="preset-btn" onclick="selectPreset('branch')">
+                        <span class="preset-title">Branch Office <span class="dept-tag">Edge Site</span></span>
+                        <span class="preset-desc">Compact topology with secure gateway router, localized services, and workstations.</span>
+                    </div>
+                </div>
             </div>
-            <div class="range-row">
-                <label>Core Routers (40G)</label>
-                <input type="range" id="modal-cores" min="1" max="4" value="2" oninput="document.getElementById('val-cores').textContent=this.value" />
-                <span class="range-val" id="val-cores">2</span>
+
+            <!-- Step 2: Modular Department Pods with Steppers -->
+            <div>
+                <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">2. Configure Subsystems & Department Scale</div>
+                <div class="dept-grid">
+                    <!-- Pod 1: Core & Security -->
+                    <div class="dept-card">
+                        <div class="dept-card-top">
+                            <div>
+                                <div class="dept-name">
+                                    Perimeter & Core Backbone
+                                    <span class="tooltip-trigger">?
+                                        <span class="tooltip-card">Boundary routing, stateful packet inspection firewall, and high-speed core switching.</span>
+                                    </span>
+                                </div>
+                                <div class="dept-sub">Subnet: 10.0.0.0/24 &bull; 40G Optical Trunk</div>
+                            </div>
+                            <span class="dept-tag" style="color:var(--cyan);border-color:rgba(56,189,248,0.3)">ACTIVE</span>
+                        </div>
+                        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px;">
+                            <span class="bp-chip">gw-border-01</span>
+                            <span class="bp-chip">fw-edge-01</span>
+                            <span class="bp-chip">sw-core-01</span>
+                        </div>
+                    </div>
+
+                    <!-- Pod 2: Data Center Compute -->
+                    <div class="dept-card">
+                        <div class="dept-card-top">
+                            <div>
+                                <div class="dept-name">
+                                    Data Center Compute Pod
+                                    <span class="tooltip-trigger">?
+                                        <span class="tooltip-card">Scalable cluster of Web frontends and Database storage nodes attached to distribution fabric.</span>
+                                    </span>
+                                </div>
+                                <div class="dept-sub">Subnet: 10.0.2.0/24 &bull; VLAN 20</div>
+                            </div>
+                            <span class="dept-tag">COMPUTE</span>
+                        </div>
+                        <div class="dept-stepper">
+                            <button class="stepper-btn" onclick="adjustDeptCount('server', -1)">-</button>
+                            <span class="stepper-val" id="disp-cnt-server">4 Servers</span>
+                            <button class="stepper-btn" onclick="adjustDeptCount('server', 1)">+</button>
+                        </div>
+                    </div>
+
+                    <!-- Pod 3: Engineering Division -->
+                    <div class="dept-card">
+                        <div class="dept-card-top">
+                            <div>
+                                <div class="dept-name">
+                                    Engineering Division Pod
+                                    <span class="tooltip-trigger">?
+                                        <span class="tooltip-card">Dedicated distribution switch and developer endpoints for builds and telemetry.</span>
+                                    </span>
+                                </div>
+                                <div class="dept-sub">Subnet: 10.0.3.0/24 &bull; VLAN 30</div>
+                            </div>
+                            <span class="dept-tag">ENG</span>
+                        </div>
+                        <div class="dept-stepper">
+                            <button class="stepper-btn" onclick="adjustDeptCount('eng', -1)">-</button>
+                            <span class="stepper-val" id="disp-cnt-eng">4 Workstations</span>
+                            <button class="stepper-btn" onclick="adjustDeptCount('eng', 1)">+</button>
+                        </div>
+                    </div>
+
+                    <!-- Pod 4: Finance & Operations -->
+                    <div class="dept-card">
+                        <div class="dept-card-top">
+                            <div>
+                                <div class="dept-name">
+                                    Finance & Operations Pod
+                                    <span class="tooltip-trigger">?
+                                        <span class="tooltip-card">Isolated department network with accounting desks and compliance controls.</span>
+                                    </span>
+                                </div>
+                                <div class="dept-sub">Subnet: 10.0.4.0/24 &bull; VLAN 40</div>
+                            </div>
+                            <span class="dept-tag">FIN</span>
+                        </div>
+                        <div class="dept-stepper">
+                            <button class="stepper-btn" onclick="adjustDeptCount('fin', -1)">-</button>
+                            <span class="stepper-val" id="disp-cnt-fin">3 Workstations</span>
+                            <button class="stepper-btn" onclick="adjustDeptCount('fin', 1)">+</button>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="range-row">
-                <label>Distribution Switches (10G)</label>
-                <input type="range" id="modal-switches" min="1" max="6" value="3" oninput="document.getElementById('val-switches').textContent=this.value" />
-                <span class="range-val" id="val-switches">3</span>
+
+            <!-- Blueprint Summary Bar -->
+            <div class="blueprint-summary-bar">
+                <div class="blueprint-chips" id="blueprint-chips-container">
+                    <span style="font-weight:700;color:var(--text-primary);margin-right:4px;">Staging Blueprint:</span>
+                    <span class="bp-chip" id="bp-chip-backbone">3 Backbone Nodes</span>
+                    <span class="bp-chip" id="bp-chip-srv">4 Compute Nodes</span>
+                    <span class="bp-chip" id="bp-chip-eng">4 Engineering Desks</span>
+                    <span class="bp-chip" id="bp-chip-fin">3 Finance Desks</span>
+                </div>
+                <div style="font-family:var(--font-mono);font-weight:700;color:var(--green);" id="bp-total-nodes">Total: 15 Endpoints</div>
             </div>
-            <div class="range-row">
-                <label>Production Servers</label>
-                <input type="range" id="modal-servers" min="1" max="8" value="4" oninput="document.getElementById('val-servers').textContent=this.value" />
-                <span class="range-val" id="val-servers">4</span>
+
+            <!-- Optional Collapsible Advanced Device Table -->
+            <div style="border-top:1px solid var(--border-dim);padding-top:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <button class="btn" style="font-size:10.5px;padding:3px 8px;" onclick="toggleAdvancedTable()">[+] Advanced Device & IP Mapping</button>
+                    <span style="font-size:10.5px;color:var(--text-tertiary);">Edit individual hostnames, subnets, and rack locations</span>
+                </div>
+                <div id="advanced-table-wrapper" style="display:none;margin-top:10px;max-height:30vh;overflow-y:auto;border:1px solid var(--border-dim);border-radius:4px;">
+                    <table class="builder-table">
+                        <thead>
+                            <tr>
+                                <th style="width:20%;">Device Name</th>
+                                <th style="width:20%;">Role</th>
+                                <th style="width:18%;">Department</th>
+                                <th style="width:16%;">Rack</th>
+                                <th style="width:16%;">IPv4</th>
+                                <th style="width:10%;">Uplink</th>
+                            </tr>
+                        </thead>
+                        <tbody id="builder-tbody"></tbody>
+                    </table>
+                </div>
             </div>
-            <div class="range-row">
-                <label>Client Workstations</label>
-                <input type="range" id="modal-ws" min="1" max="12" value="6" oninput="document.getElementById('val-ws').textContent=this.value" />
-                <span class="range-val" id="val-ws">6</span>
+
+            <div style="font-size:11px;color:var(--text-tertiary);line-height:1.5;">
+                <span style="color:var(--green);font-weight:700;">Organic Staged Rollout:</span> On clicking Deploy, endpoints and links will generate sequentially with realistic optical cabling delays and telemetry in the floating terminal.
             </div>
         </div>
         <div class="modal-footer">
             <button class="btn" onclick="closeEnterpriseModal()">Cancel</button>
-            <button class="btn-solid" onclick="deployFromModal()">Deploy Topology</button>
+            <button class="btn-solid" onclick="deployProgressiveEnterprise()">Deploy Network (Live Staging)</button>
         </div>
     </div>
 </div>
@@ -1076,8 +1603,100 @@ function switchTab(id) {
     else if (id === 'pane-logs') fetchAuditLogs();
 }
 
-// Keyboard shortcuts 1-4
+// ── Detached Floating Linux CLI Window ──
+let isDraggingCli = false;
+let cliDragOffsetX = 0;
+let cliDragOffsetY = 0;
+
+function initCliWindowDrag() {
+    const handle = document.getElementById('cli-win-drag-handle');
+    const win = document.getElementById('cli-floating-win');
+    if (!handle || !win) return;
+
+    handle.addEventListener('mousedown', e => {
+        if (e.target.closest('button') || e.target.closest('.window-dot')) return;
+        isDraggingCli = true;
+        win.classList.add('dragged');
+        const rect = win.getBoundingClientRect();
+        cliDragOffsetX = e.clientX - rect.left;
+        cliDragOffsetY = e.clientY - rect.top;
+        handle.style.cursor = 'grabbing';
+    });
+
+    window.addEventListener('mousemove', e => {
+        if (!isDraggingCli) return;
+        const x = Math.max(8, Math.min(window.innerWidth - win.offsetWidth - 8, e.clientX - cliDragOffsetX));
+        const y = Math.max(8, Math.min(window.innerHeight - win.offsetHeight - 8, e.clientY - cliDragOffsetY));
+        win.style.left = x + 'px';
+        win.style.top = y + 'px';
+        win.style.transform = 'none';
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (isDraggingCli) {
+            isDraggingCli = false;
+            handle.style.cursor = 'grab';
+        }
+    });
+}
+
+function resetCliPosition() {
+    const win = document.getElementById('cli-floating-win');
+    if (!win) return;
+    win.classList.remove('dragged');
+    win.style.left = '50%';
+    win.style.top = '72px';
+    win.style.transform = '';
+}
+
+function toggleCliDrawer(forceOpen) {
+    const win = document.getElementById('cli-floating-win');
+    const btn = document.getElementById('btn-cli-toggle');
+    if (!win) return;
+    if (forceOpen === true) {
+        win.classList.add('open');
+    } else if (forceOpen === false) {
+        win.classList.remove('open');
+    } else {
+        win.classList.toggle('open');
+    }
+    if (win.classList.contains('open')) {
+        if (btn) btn.style.borderColor = 'var(--green)';
+        setTimeout(() => {
+            const inp = document.getElementById('term-in');
+            if (inp) inp.focus();
+        }, 80);
+    } else {
+        if (btn) btn.style.borderColor = '';
+    }
+}
+
+// Global key handlers (Esc to close, 1-4 for tabs, hotkey for CLI)
 window.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+        const win = document.getElementById('cli-floating-win');
+        if (win && win.classList.contains('open')) {
+            toggleCliDrawer(false);
+            return;
+        }
+        const modal = document.getElementById('enterprise-modal');
+        if (modal && modal.classList.contains('open')) {
+            closeEnterpriseModal();
+            return;
+        }
+        const insp = document.getElementById('inspector');
+        if (insp && insp.classList.contains('open')) {
+            closeInspector();
+            return;
+        }
+    }
+
+    if ((e.ctrlKey && e.key === '`') || e.key === 'F2') {
+        e.preventDefault();
+        toggleCliDrawer();
+        return;
+    }
+
     if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
     const panes = ['pane-main', 'pane-analytics', 'pane-chaos', 'pane-logs'];
     if (e.key >= '1' && e.key <= '4') switchTab(panes[parseInt(e.key) - 1]);
@@ -1105,7 +1724,9 @@ function toggleLegend() {
 // ── D3 Graph Initialization ──
 function initGraph() {
     root.append('g').attr('class', 'layer-links');
+    root.append('g').attr('class', 'layer-beams');
     root.append('g').attr('class', 'layer-nodes');
+    root.append('g').attr('class', 'layer-ripples');
     root.append('g').attr('class', 'layer-packet');
     linkSel = root.select('.layer-links');
     nodeSel = root.select('.layer-nodes');
@@ -1216,6 +1837,8 @@ function linkClass(d) {
     let c = 'link-line ' + tier;
     if (d.state === 'SEVERED' || activeFaults.has(s+';'+t) || activeFaults.has(t+';'+s)) {
         c += ' severed';
+    } else {
+        c += ' flowing';
     }
     return c;
 }
@@ -1372,6 +1995,8 @@ function inspectNode(d) {
     document.getElementById('insp-name').textContent = d.id;
     document.getElementById('insp-ip').textContent = d.ip || d.id;
     document.getElementById('insp-role').textContent = (d.role || 'access').toUpperCase();
+    document.getElementById('insp-dept').textContent = d.department || d.dept || (d.id.includes('eng') ? 'Engineering' : (d.id.includes('fin') ? 'Finance' : (d.id.includes('srv') ? 'Data Center' : 'IT & SecOps')));
+    document.getElementById('insp-rack').textContent = d.rack || (d.id.includes('core') || d.id.includes('gw') ? 'Rack-CR1' : (d.id.includes('srv') ? 'Rack-DC1' : 'Office Distribution'));
     document.getElementById('insp-rtt').textContent = (1.1 + Math.random() * 0.8).toFixed(2) + 'ms';
     document.getElementById('inspector').classList.add('open');
     updateGraph();
@@ -1534,22 +2159,346 @@ function appendTerm(text, color) {
     scr.scrollTop = scr.scrollHeight;
 }
 
-// ── Modal Handling ──
+// ── Modular Enterprise Network Architect (No Emojis) ──
+let architectConfig = {
+    preset: 'campus',
+    serverCount: 4,
+    engCount: 4,
+    finCount: 3
+};
+
+let builderDevices = [];
+
+const BUILDER_ROLES = [
+    { value: 'core', label: 'Gateway / Core Router' },
+    { value: 'firewall', label: 'Next-Gen Firewall' },
+    { value: 'distribution', label: 'Distribution Switch' },
+    { value: 'server', label: 'Enterprise Server' },
+    { value: 'workstation', label: 'Workstation / Endpoint' },
+    { value: 'access', label: 'Access Switch' }
+];
+
+const BUILDER_DEPTS = [
+    'IT & SecOps',
+    'Data Center',
+    'Engineering',
+    'Finance',
+    'Operations',
+    'Executive'
+];
+
+function selectPreset(preset) {
+    architectConfig.preset = preset;
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('preset-' + preset);
+    if (btn) btn.classList.add('active');
+
+    if (preset === 'campus') {
+        architectConfig.serverCount = 4;
+        architectConfig.engCount = 4;
+        architectConfig.finCount = 3;
+    } else if (preset === 'spineleaf') {
+        architectConfig.serverCount = 6;
+        architectConfig.engCount = 2;
+        architectConfig.finCount = 1;
+    } else if (preset === 'branch') {
+        architectConfig.serverCount = 2;
+        architectConfig.engCount = 3;
+        architectConfig.finCount = 2;
+    }
+    syncArchitectUI();
+    rebuildDevicesFromConfig();
+}
+
+function adjustDeptCount(dept, delta) {
+    if (dept === 'server') {
+        architectConfig.serverCount = Math.max(1, Math.min(8, architectConfig.serverCount + delta));
+    } else if (dept === 'eng') {
+        architectConfig.engCount = Math.max(1, Math.min(8, architectConfig.engCount + delta));
+    } else if (dept === 'fin') {
+        architectConfig.finCount = Math.max(0, Math.min(8, architectConfig.finCount + delta));
+    }
+    syncArchitectUI();
+    rebuildDevicesFromConfig();
+}
+
+function syncArchitectUI() {
+    const srvEl = document.getElementById('disp-cnt-server');
+    const engEl = document.getElementById('disp-cnt-eng');
+    const finEl = document.getElementById('disp-cnt-fin');
+    if (srvEl) srvEl.textContent = `${architectConfig.serverCount} Servers`;
+    if (engEl) engEl.textContent = `${architectConfig.engCount} Workstations`;
+    if (finEl) finEl.textContent = `${architectConfig.finCount} Workstations`;
+
+    const chipSrv = document.getElementById('bp-chip-srv');
+    const chipEng = document.getElementById('bp-chip-eng');
+    const chipFin = document.getElementById('bp-chip-fin');
+    const totalEl = document.getElementById('bp-total-nodes');
+
+    if (chipSrv) chipSrv.textContent = `${architectConfig.serverCount} Compute Nodes`;
+    if (chipEng) chipEng.textContent = `${architectConfig.engCount} Engineering Desks`;
+    if (chipFin) chipFin.textContent = `${architectConfig.finCount} Finance Desks`;
+
+    const total = 3 + architectConfig.serverCount + (architectConfig.engCount > 0 ? architectConfig.engCount + 1 : 0) + (architectConfig.finCount > 0 ? architectConfig.finCount + 1 : 0);
+    if (totalEl) totalEl.textContent = `Total: ${total} Endpoints`;
+}
+
+function rebuildDevicesFromConfig() {
+    const devs = [
+        { name: 'gw-border-01', role: 'core', dept: 'IT & SecOps', rack: 'Rack-CR1', ip: '10.0.0.1', uplink: '' },
+        { name: 'fw-edge-01', role: 'firewall', dept: 'IT & SecOps', rack: 'Rack-CR1', ip: '10.0.0.2', uplink: 'gw-border-01' },
+        { name: 'sw-core-01', role: 'core', dept: 'IT & SecOps', rack: 'Rack-CR2', ip: '10.0.0.10', uplink: 'fw-edge-01' },
+        { name: 'sw-dist-srv', role: 'distribution', dept: 'Data Center', rack: 'Rack-DC1', ip: '10.0.2.1', uplink: 'sw-core-01' }
+    ];
+
+    // Compute Servers
+    for (let i = 1; i <= architectConfig.serverCount; i++) {
+        const isDb = (i % 2 === 0);
+        const prefix = isDb ? 'srv-db' : 'srv-web';
+        const num = String(Math.ceil(i / 2)).padStart(2, '0');
+        devs.push({
+            name: `${prefix}-${num}`,
+            role: 'server',
+            dept: 'Data Center',
+            rack: 'Rack-DC1',
+            ip: `10.0.2.${10 + i}`,
+            uplink: 'sw-dist-srv'
+        });
+    }
+
+    // Engineering Pod
+    if (architectConfig.engCount > 0) {
+        devs.push({ name: 'sw-dist-eng', role: 'distribution', dept: 'Engineering', rack: 'Floor 3', ip: '10.0.3.1', uplink: 'sw-core-01' });
+        for (let i = 1; i <= architectConfig.engCount; i++) {
+            devs.push({
+                name: `ws-eng-${100 + i}`,
+                role: 'workstation',
+                dept: 'Engineering',
+                rack: `Desk-E${100 + i}`,
+                ip: `10.0.3.${100 + i}`,
+                uplink: 'sw-dist-eng'
+            });
+        }
+    }
+
+    // Finance Pod
+    if (architectConfig.finCount > 0) {
+        devs.push({ name: 'sw-dist-fin', role: 'distribution', dept: 'Finance', rack: 'Floor 2', ip: '10.0.4.1', uplink: 'sw-core-01' });
+        for (let i = 1; i <= architectConfig.finCount; i++) {
+            devs.push({
+                name: `ws-fin-${200 + i}`,
+                role: 'workstation',
+                dept: 'Finance',
+                rack: `Desk-F${200 + i}`,
+                ip: `10.0.4.${100 + i}`,
+                uplink: 'sw-dist-fin'
+            });
+        }
+    }
+
+    builderDevices = devs;
+    renderBuilderTable();
+}
+
+function toggleAdvancedTable() {
+    const wrap = document.getElementById('advanced-table-wrapper');
+    if (!wrap) return;
+    if (wrap.style.display === 'none') {
+        wrap.style.display = 'block';
+        renderBuilderTable();
+    } else {
+        wrap.style.display = 'none';
+    }
+}
+
+function renderBuilderTable() {
+    const tbody = document.getElementById('builder-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    builderDevices.forEach((dev, idx) => {
+        const tr = document.createElement('tr');
+
+        let uplinkOpts = `<option value="">-- Direct / Root --</option>`;
+        builderDevices.forEach((other, otherIdx) => {
+            if (otherIdx !== idx) {
+                uplinkOpts += `<option value="${other.name}" ${dev.uplink === other.name ? 'selected' : ''}>${other.name}</option>`;
+            }
+        });
+
+        let roleOpts = '';
+        BUILDER_ROLES.forEach(r => {
+            roleOpts += `<option value="${r.value}" ${dev.role === r.value ? 'selected' : ''}>${r.label}</option>`;
+        });
+
+        let deptOpts = '';
+        BUILDER_DEPTS.forEach(d => {
+            deptOpts += `<option value="${d}" ${dev.dept === d ? 'selected' : ''}>${d}</option>`;
+        });
+
+        tr.innerHTML = `
+            <td><input class="builder-input" type="text" value="${dev.name}" oninput="updateBuilderDev(${idx}, 'name', this.value)" /></td>
+            <td><select class="builder-select" onchange="updateBuilderDev(${idx}, 'role', this.value)">${roleOpts}</select></td>
+            <td><select class="builder-select" onchange="updateBuilderDev(${idx}, 'dept', this.value)">${deptOpts}</select></td>
+            <td><input class="builder-input" type="text" value="${dev.rack}" oninput="updateBuilderDev(${idx}, 'rack', this.value)" /></td>
+            <td><input class="builder-input" type="text" value="${dev.ip}" oninput="updateBuilderDev(${idx}, 'ip', this.value)" /></td>
+            <td><select class="builder-select" onchange="updateBuilderDev(${idx}, 'uplink', this.value)">${uplinkOpts}</select></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function updateBuilderDev(idx, key, val) {
+    if (builderDevices[idx]) {
+        const oldName = builderDevices[idx].name;
+        builderDevices[idx][key] = val;
+        if (key === 'name' && oldName !== val) {
+            builderDevices.forEach(d => {
+                if (d.uplink === oldName) d.uplink = val;
+            });
+            renderBuilderTable();
+        }
+    }
+}
+
 function openEnterpriseModal() {
+    syncArchitectUI();
+    rebuildDevicesFromConfig();
     document.getElementById('enterprise-modal').classList.add('open');
 }
+
 function closeEnterpriseModal() {
     document.getElementById('enterprise-modal').classList.remove('open');
 }
-async function deployFromModal() {
-    const c = parseInt(document.getElementById('modal-cores').value) || 2;
-    const sw = parseInt(document.getElementById('modal-switches').value) || 3;
-    const sv = parseInt(document.getElementById('modal-servers').value) || 4;
-    const ws = parseInt(document.getElementById('modal-ws').value) || 6;
+
+// ── Visual Animation Triggers ──
+function triggerNodeSpawnEffect(x, y, role) {
+    if (!x || !y) return;
+    const layer = root.select('.layer-ripples');
+    if (layer.empty()) return;
+
+    let cls = 'spawn-ring';
+    if (role === 'core') cls += ' core';
+    else if (role === 'distribution') cls += ' dist';
+    else if (role === 'server') cls += ' server';
+
+    const ring = layer.append('circle')
+        .attr('class', cls)
+        .attr('cx', x)
+        .attr('cy', y)
+        .attr('r', 18);
+
+    setTimeout(() => ring.remove(), 760);
+}
+
+function triggerLinkLaserEffect(sNode, tNode) {
+    if (!sNode || !tNode || !sNode.x || !tNode.x) return;
+    const layer = root.select('.layer-beams');
+    if (layer.empty()) return;
+
+    const beam = layer.append('line')
+        .attr('class', 'laser-cable')
+        .attr('x1', sNode.x)
+        .attr('y1', sNode.y)
+        .attr('x2', tNode.x)
+        .attr('y2', tNode.y);
+
+    setTimeout(() => beam.remove(), 480);
+}
+
+function triggerHopBurst(x, y) {
+    if (!x || !y) return;
+    const layer = root.select('.layer-packet');
+    if (layer.empty()) return;
+
+    const burst = layer.append('circle')
+        .attr('class', 'hop-burst')
+        .attr('cx', x)
+        .attr('cy', y)
+        .attr('r', 6);
+
+    setTimeout(() => burst.remove(), 520);
+}
+
+// ── Slowed Organic Staged Rollout (500ms Delay) ──
+async function deployProgressiveEnterprise() {
+    if (builderDevices.length === 0) {
+        rebuildDevicesFromConfig();
+    }
     closeEnterpriseModal();
-    appendTerm(`$ init mesh ${c} ${sw} ${sv} ${ws}`, 'var(--green)');
-    await setupCustomMesh(c, sw, sv, ws);
-    appendTerm(`Enterprise mesh online: ${c} core, ${sw} distribution, ${sv} servers, ${ws} workstations.`);
+    toggleCliDrawer(true);
+
+    appendTerm('\n' + '='.repeat(64), 'var(--border-vis)');
+    appendTerm('[PROVISIONING KERNEL] Initializing Enterprise Fabric Staging Engine...', 'var(--cyan)');
+    appendTerm(`[STAGING QUEUE] ${builderDevices.length} enterprise endpoints scheduled for organic deployment.`, 'var(--text-secondary)');
+    appendTerm('='.repeat(64), 'var(--border-vis)');
+
+    // Reset clean first
+    try { await fetch(`http://${API}/v1/topology/clear`, { method: 'POST' }); } catch(e) {}
+    nodes = [];
+    links = [];
+    activeFaults.clear();
+    updateGraph();
+
+    for (let i = 0; i < builderDevices.length; i++) {
+        const dev = builderDevices[i];
+        appendTerm(`[PROVISION ${i + 1}/${builderDevices.length}] Staging ${dev.name} (${dev.ip}) [Role: ${dev.role.toUpperCase()}] Dept: ${dev.dept} Rack: ${dev.rack}...`);
+
+        try {
+            await fetch(`http://${API}/v1/nodes/add`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: dev.name,
+                    ip: dev.ip,
+                    role: dev.role,
+                    department: dev.dept,
+                    connect_to: dev.uplink
+                })
+            });
+        } catch(e) {}
+
+        // Add node to local D3 state
+        const newNode = {
+            id: dev.name,
+            ip: dev.ip,
+            role: dev.role,
+            department: dev.dept,
+            rack: dev.rack
+        };
+        nodes.push(newNode);
+
+        let parentNode = null;
+        if (dev.uplink) {
+            parentNode = nodes.find(n => n.id === dev.uplink);
+            if (parentNode) {
+                links.push({
+                    source: parentNode,
+                    target: newNode,
+                    state: 'UP'
+                });
+                appendTerm(`  [LINK UP] Optical trunk active: ${dev.name} <===> ${dev.uplink} [10G/40G UP]`, 'var(--green)');
+            }
+        }
+
+        updateGraph();
+
+        // Trigger dramatic visual animations on canvas
+        setTimeout(() => {
+            triggerNodeSpawnEffect(newNode.x, newNode.y, newNode.role);
+            if (parentNode) triggerLinkLaserEffect(parentNode, newNode);
+        }, 40);
+
+        // Slow organic delay: 500ms
+        await new Promise(r => setTimeout(r, 500));
+    }
+
+    appendTerm('='.repeat(64), 'var(--border-vis)');
+    appendTerm(`[DEPLOYMENT SUCCESS] Fabric Convergence Complete: ${nodes.length} nodes, ${links.length} links active.`, 'var(--green)');
+    appendTerm('='.repeat(64) + '\n', 'var(--border-vis)');
+    toast(`Enterprise network deployed: ${nodes.length} nodes online`);
+
+    setTimeout(syncGraph, 450);
 }
 
 // ── API Calls ──
@@ -1711,7 +2660,10 @@ async function executeTrace(src, dst, proto) {
                                 .ease(d3.easeLinear)
                                 .attr('cx', currNode.x)
                                 .attr('cy', currNode.y)
-                                .on('end', resolve);
+                                .on('end', () => {
+                                    triggerHopBurst(currNode.x, currNode.y);
+                                    resolve();
+                                });
                         });
                     }
                 }
@@ -1954,7 +2906,15 @@ async function syncGraph() {
         const nn = [];
         if (g.nodes) {
             Object.keys(g.nodes).forEach(k => {
-                nn.push({id: k, ip: k, role: getRoleFromID(k)});
+                const existing = nodes.find(n => n.id === k);
+                const nodeObj = g.nodes[k] || {};
+                nn.push({
+                    id: k,
+                    ip: nodeObj.ip || (existing && existing.ip) || k,
+                    role: nodeObj.role || (existing && existing.role) || getRoleFromID(k),
+                    department: nodeObj.department || (existing && existing.department) || '',
+                    rack: (existing && existing.rack) || ''
+                });
             });
         }
         nodes = nn;
@@ -2000,6 +2960,9 @@ function connectSSE() {
 
 // ── Bootstrap ──
 initGraph();
+initCliWindowDrag();
+syncArchitectUI();
+rebuildDevicesFromConfig();
 connectSSE();
 syncGraph();
 </script>

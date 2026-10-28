@@ -29,6 +29,7 @@ type EnterpriseNode struct {
 	Name          string   `json:"name"`
 	IP            string   `json:"ip"`
 	Role          NodeRole `json:"role"`
+	Department    string   `json:"department,omitempty"`
 	Subnet        string   `json:"subnet"`
 	VLAN          int      `json:"vlan"`
 	Rack          string   `json:"rack"`
