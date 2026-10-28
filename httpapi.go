@@ -660,6 +660,7 @@ func (h *HTTPApi) handleAddNode(w http.ResponseWriter, r *http.Request) {
 	// If connect_to is provided, create link
 	if req.ConnectTo != "" {
 		h.m.Graph.IncrLink(req.ConnectTo, req.Name, nil)
+		h.m.Graph.IncrRoute([]string{req.ConnectTo, req.Name}, nil)
 	}
 
 	// Register in Enterprise Registry

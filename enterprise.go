@@ -619,6 +619,7 @@ func PopulateEnterpriseDemo(ctx context.Context, g *graph.NetworkGraph, reg *Ent
 
 	for _, l := range links {
 		g.IncrLink(l[0], l[1], nil)
+		g.IncrRoute([]string{l[0], l[1]}, nil)
 	}
 
 	// Define multi-path ECMP routes for live pinger simulations
@@ -645,12 +646,45 @@ func PopulateEnterpriseDemo(ctx context.Context, g *graph.NetworkGraph, reg *Ent
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				for _, routePath := range routes {
-					rt := g.GetRoute(routePath)
-					if rt != nil {
-						// 1.1ms - 3.2ms realistic campus RTT
+				g.RoutesLock.RLock()
+				allRoutes := make([]*graph.NetworkRoute, 0, len(g.RoutesMap))
+				for _, rt := range g.RoutesMap {
+					allRoutes = append(allRoutes, rt)
+				}
+				g.RoutesLock.RUnlock()
+
+				for _, rt := range allRoutes {
+					if rt == nil || len(rt.Path) < 2 {
+						continue
+					}
+					hasBroken := false
+					hasImpaired := false
+
+					for i := 0; i < len(rt.Path)-1; i++ {
+						hopA := rt.Path[i]
+						hopB := rt.Path[i+1]
+						if g.IsLinkSevered(hopA, hopB) {
+							hasBroken = true
+							break
+						}
+						linkKey := hopA + ";" + hopB
+						if l := g.GetLink(linkKey); l != nil && (l.State == "IMPAIRED" || l.State == "DEGRADED") {
+							hasImpaired = true
+						}
+					}
+
+					if hasBroken {
+						// 100% loss through severed link: causes suspicion to jump to 90%-100%!
+						rt.HandleACK(false, 0)
+					} else if hasImpaired {
+						// 40% loss + elevated latency through impaired link
+						loss := r.Float64() < 0.40
+						latNs := int64((25000 + r.Intn(15000)) * int(time.Microsecond))
+						rt.HandleACK(!loss, latNs)
+					} else {
+						// Nominal health
+						loss := r.Float64() < 0.002
 						latNs := int64((1100 + r.Intn(1600)) * int(time.Microsecond))
-						loss := r.Float64() < 0.005 // 0.5% packet drop rate
 						rt.HandleACK(!loss, latNs)
 					}
 				}

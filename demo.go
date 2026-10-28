@@ -30,18 +30,38 @@ func StartDemoSimulator(ctx context.Context, g *graph.NetworkGraph, localName st
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				// Simulate periodic ping samples across both routes
+				// Check if links along path1 or path2 are severed
 				r1 := g.GetRoute(path1)
 				r2 := g.GetRoute(path2)
 				if r1 != nil {
-					// 1.2ms to 3.5ms
-					lat := int64((1200 + r.Intn(1800)) * int(time.Microsecond))
-					r1.HandleACK(true, lat)
+					hasBroken := false
+					for i := 0; i < len(path1)-1; i++ {
+						if g.IsLinkSevered(path1[i], path1[i+1]) {
+							hasBroken = true
+							break
+						}
+					}
+					if hasBroken {
+						r1.HandleACK(false, 0)
+					} else {
+						lat := int64((1200 + r.Intn(1800)) * int(time.Microsecond))
+						r1.HandleACK(true, lat)
+					}
 				}
 				if r2 != nil {
-					// 1.5ms to 4.2ms
-					lat := int64((1500 + r.Intn(2200)) * int(time.Microsecond))
-					r2.HandleACK(true, lat)
+					hasBroken := false
+					for i := 0; i < len(path2)-1; i++ {
+						if g.IsLinkSevered(path2[i], path2[i+1]) {
+							hasBroken = true
+							break
+						}
+					}
+					if hasBroken {
+						r2.HandleACK(false, 0)
+					} else {
+						lat := int64((1500 + r.Intn(2200)) * int(time.Microsecond))
+						r2.HandleACK(true, lat)
+					}
 				}
 			}
 		}

@@ -3511,11 +3511,17 @@ async function fetchLinkFaults() {
         tbody.innerHTML = '';
         ranked.slice(0, 8).forEach(r => {
             const tr = document.createElement('tr');
+            const suspPct = (r.suspicion * 100).toFixed(1);
+            const lossThru = (r.avgLossThrough * 100).toFixed(1);
+            const isSuspicious = r.suspicion > 0.10;
             tr.innerHTML = `
-                <td style="font-family:var(--font-mono);font-weight:600;color:var(--text-primary);">${r.src} ↔ ${r.dst}</td>
-                <td style="font-family:var(--font-mono);color:${r.suspicion > 0.15 ? 'var(--red)' : 'var(--green)'};">${(r.suspicion*100).toFixed(1)}%</td>
-                <td style="font-family:var(--font-mono);">${(r.avgLossThrough*100).toFixed(1)}%</td>
-                <td>${r.routesThrough}</td>
+                <td style="font-family:var(--font-mono);font-weight:600;color:var(--text-primary);">
+                    ${r.src} ↔ ${r.dst}
+                    ${isSuspicious ? '<span style="background:rgba(239,68,68,0.2);color:var(--red);font-size:9px;padding:1px 5px;border-radius:2px;margin-left:6px;font-weight:700;">FAULT SUSPECT</span>' : ''}
+                </td>
+                <td style="font-family:var(--font-mono);font-weight:700;color:${isSuspicious ? 'var(--red)' : 'var(--green)'};">${suspPct}%</td>
+                <td style="font-family:var(--font-mono);">${lossThru}%</td>
+                <td>${r.routesThrough} routes</td>
             `;
             tbody.appendChild(tr);
         });
