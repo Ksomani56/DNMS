@@ -554,28 +554,66 @@
 
         #graph-svg { width: 100%; height: 100%; display: block; }
 
-        .canvas-controls {
+        .canvas-top-bar {
             position: absolute;
-            top: 12px;
-            left: 12px;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            z-index: 15;
+            pointer-events: none;
+        }
+
+        .canvas-controls {
             display: flex;
             gap: 4px;
-            z-index: 10;
+            pointer-events: auto;
+            flex-wrap: wrap;
         }
 
         .canvas-filter-bar {
-            position: absolute;
-            top: 12px;
-            left: 310px;
             display: flex;
             align-items: center;
             gap: 6px;
-            z-index: 10;
             background: rgba(17,17,17,0.92);
             border: 1px solid var(--border-mid);
             border-radius: 4px;
             padding: 3px 8px;
             backdrop-filter: blur(8px);
+            pointer-events: auto;
+        }
+
+        .sidebar-expand-tab {
+            position: absolute;
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-vis);
+            border-right: none;
+            border-radius: 4px 0 0 4px;
+            padding: 12px 6px;
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            z-index: 20;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: -4px 0 16px rgba(0,0,0,0.5);
+            transition: all 120ms;
+            user-select: none;
+        }
+        .sidebar-expand-tab:hover {
+            color: var(--cyan);
+            border-color: var(--cyan);
         }
         .canvas-filter-bar input, .canvas-filter-bar select {
             background: var(--bg-input);
@@ -1603,16 +1641,45 @@ Type 'help' for available commands, or press Tab for ghost-text autocomplete.
                     <g id="canvas-root"></g>
                 </svg>
 
-                <div class="canvas-controls">
-                    <button class="c-btn" onclick="setLayout('force')">Force</button>
-                    <button class="c-btn on" onclick="setLayout('hierarchy')">Hierarchy</button>
-                    <button class="c-btn" onclick="setLayout('ring')">Ring</button>
-                    <button class="c-btn" onclick="setLayout('grid')">Grid</button>
-                    <button class="c-btn" onclick="zoomIn()">+</button>
-                    <button class="c-btn" onclick="zoomOut()">-</button>
-                    <button class="c-btn" onclick="resetZoom()">Fit</button>
-                    <button class="c-btn" id="btn-zen" onclick="toggleCanvasZenMode()" title="Fullscreen topology focus mode"><span style="color:var(--cyan)">⛶</span> Fullscreen</button>
-                    <button class="c-btn" id="btn-sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">◧ Sidebar</button>
+                <!-- Unified Non-Overlapping Canvas Top Bar -->
+                <div class="canvas-top-bar">
+                    <div class="canvas-controls">
+                        <button class="c-btn" onclick="setLayout('force')">Force</button>
+                        <button class="c-btn on" onclick="setLayout('hierarchy')">Hierarchy</button>
+                        <button class="c-btn" onclick="setLayout('ring')">Ring</button>
+                        <button class="c-btn" onclick="setLayout('grid')">Grid</button>
+                        <button class="c-btn" onclick="zoomIn()">+</button>
+                        <button class="c-btn" onclick="zoomOut()">-</button>
+                        <button class="c-btn" onclick="resetZoom()">Fit</button>
+                        <button class="c-btn" id="btn-zen" onclick="toggleCanvasZenMode()" title="Fullscreen topology focus mode"><span style="color:var(--cyan)">⛶</span> Fullscreen</button>
+                        <button class="c-btn" id="btn-sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">◧ Sidebar</button>
+                    </div>
+
+                    <!-- Network Scope & Subnet Filter Toolbar -->
+                    <div class="canvas-filter-bar">
+                        <input type="text" id="filter-search" placeholder="Filter node/IP..." oninput="applyCanvasFilter()" style="width:115px;" />
+                        <select id="filter-role" onchange="applyCanvasFilter()">
+                            <option value="">All Roles</option>
+                            <option value="core">Core Router</option>
+                            <option value="spine">Spine Fabric</option>
+                            <option value="distribution">Distribution</option>
+                            <option value="leaf">Leaf Switch</option>
+                            <option value="access">Access Switch</option>
+                            <option value="firewall">Firewall / DMZ</option>
+                            <option value="server">Server</option>
+                            <option value="workstation">Workstation</option>
+                        </select>
+                        <select id="filter-subnet" onchange="applyCanvasFilter()">
+                            <option value="">All Subnets</option>
+                            <option value="10.0.0.0/24">10.0.0.0/24 (Core)</option>
+                            <option value="10.0.1.0/24">10.0.1.0/24 (Distribution)</option>
+                            <option value="10.0.2.0/24">10.0.2.0/24 (Access)</option>
+                            <option value="10.0.3.0/24">10.0.3.0/24 (DMZ/FW)</option>
+                            <option value="172.16.1.0/24">172.16.1.0/24 (Servers)</option>
+                            <option value="192.168.1.0/24">192.168.1.0/24 (Workstations)</option>
+                        </select>
+                        <button class="btn" style="padding:2px 7px;font-size:10px;" onclick="clearCanvasFilter()">Clear</button>
+                    </div>
                 </div>
 
                 <!-- Floating Fullscreen Exit Pill -->
@@ -1620,30 +1687,9 @@ Type 'help' for available commands, or press Tab for ghost-text autocomplete.
                     <span>✕</span> Exit Fullscreen (Esc)
                 </div>
 
-                <!-- Network Scope & Subnet Filter Toolbar -->
-                <div class="canvas-filter-bar">
-                    <input type="text" id="filter-search" placeholder="Filter node/IP..." oninput="applyCanvasFilter()" style="width:130px;" />
-                    <select id="filter-role" onchange="applyCanvasFilter()">
-                        <option value="">All Roles</option>
-                        <option value="core">Core Router</option>
-                        <option value="spine">Spine Fabric</option>
-                        <option value="distribution">Distribution</option>
-                        <option value="leaf">Leaf Switch</option>
-                        <option value="access">Access Switch</option>
-                        <option value="firewall">Firewall / DMZ</option>
-                        <option value="server">Server</option>
-                        <option value="workstation">Workstation</option>
-                    </select>
-                    <select id="filter-subnet" onchange="applyCanvasFilter()">
-                        <option value="">All Subnets</option>
-                        <option value="10.0.0.0/24">10.0.0.0/24 (Core)</option>
-                        <option value="10.0.1.0/24">10.0.1.0/24 (Distribution)</option>
-                        <option value="10.0.2.0/24">10.0.2.0/24 (Access)</option>
-                        <option value="10.0.3.0/24">10.0.3.0/24 (DMZ/FW)</option>
-                        <option value="172.16.1.0/24">172.16.1.0/24 (Servers)</option>
-                        <option value="192.168.1.0/24">192.168.1.0/24 (Workstations)</option>
-                    </select>
-                    <button class="btn" style="padding:2px 7px;font-size:10px;" onclick="clearCanvasFilter()">Clear</button>
+                <!-- Floating Expand Sidebar Tab (Visible when sidebar collapsed) -->
+                <div id="btn-sidebar-expand" class="sidebar-expand-tab" onclick="toggleSidebar()" style="display:none;" title="Expand Sidebar">
+                    <span>◀</span> Telemetry & Tracer
                 </div>
 
                 <!-- Canvas Legend -->
@@ -1783,7 +1829,12 @@ Type 'help' for available commands, or press Tab for ghost-text autocomplete.
                 <div class="sidebar-section tracer-section">
                     <div class="section-header">
                         <h4>Packet & Route Tracer</h4>
-                        <span id="trc-status" style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);">Ready</span>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span id="trc-status" style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);">Ready</span>
+                            <button class="btn" onclick="toggleSidebar()" style="padding:1px 6px;font-size:10px;display:flex;align-items:center;gap:3px;" title="Collapse sidebar">
+                                <span>▶</span> Hide
+                            </button>
+                        </div>
                     </div>
                     <div class="tracer-controls">
                         <div class="tracer-row">
@@ -2502,7 +2553,7 @@ function renderLinkMonitor() {
             <div class="link-item-right">
                 <span class="badge ${isSev ? 'badge-severed' : 'badge-up'}">${isSev ? 'DOWN' : 'UP'}</span>
                 <button class="btn" style="padding:2px 6px;font-size:9px;" onclick="quickTraceLink('${s}','${t}')">Trace</button>
-                <button class="btn ${isSev ? 'btn-green' : 'btn-red'}" style="padding:2px 6px;font-size:9px;" onclick="applyChaosAction('${isSev ? 'restore' : 'sever'}','${s}','${t}')">${isSev ? 'Heal' : 'Cut'}</button>
+                <button class="btn ${isSev ? 'btn-green' : 'btn-red'}" style="padding:2px 6px;font-size:9px;" onclick="applyChaosAction('${isSev ? 'restore' : 'sever'}','${s}','${t}')">${isSev ? 'Restore' : 'Down'}</button>
             </div>
         `;
         container.appendChild(row);
@@ -3695,9 +3746,11 @@ function toggleCanvasZenMode() {
 function toggleSidebar() {
     const layout = document.querySelector('.main-layout');
     const btn = document.getElementById('btn-sidebar-toggle');
+    const tab = document.getElementById('btn-sidebar-expand');
     if (!layout) return;
     const isCol = layout.classList.toggle('sidebar-collapsed');
     if (btn) btn.classList.toggle('on', isCol);
+    if (tab) tab.style.display = isCol ? 'flex' : 'none';
     setTimeout(() => {
         resetZoom();
         updateGraph();
