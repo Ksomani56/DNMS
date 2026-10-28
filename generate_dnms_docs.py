@@ -762,3 +762,4 @@ if __name__ == "__main__":
     generate_docx("DNMS_Project_Guide_and_Pitch.docx")
     generate_pdf("DNMS_Project_Guide_and_Pitch.pdf")
     print("ALL DOCUMENTS GENERATED SUCCESSFULLY!")
+
