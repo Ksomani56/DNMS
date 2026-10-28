@@ -135,7 +135,344 @@
             border-bottom-color: var(--green);
         }
 
-        /* ── WORKSPACE ── */
+        
+        /* ── CANVAS AREA SPLIT FOR WIRESHARK DOCK ── */
+        .canvas-area {
+            position: relative;
+            overflow: hidden;
+            background: var(--bg-base);
+            border-right: 1px solid var(--border-dim);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #graph-svg {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            display: block;
+            min-height: 180px;
+        }
+
+        /* ── WIRESHARK LIVE PACKET DISSECTOR DOCK ── */
+        .wireshark-dock {
+            height: 270px;
+            min-height: 36px;
+            background: #0d1117;
+            border-top: 1px solid var(--border-mid);
+            display: flex;
+            flex-direction: column;
+            z-index: 30;
+            flex-shrink: 0;
+            transition: height 160ms cubic-bezier(0.2, 0.9, 0.3, 1);
+            user-select: text;
+        }
+        .wireshark-dock.minimized {
+            height: 36px !important;
+        }
+        .wireshark-dock.fullscreen {
+            height: 85% !important;
+        }
+
+        .ws-header {
+            height: 36px;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .ws-head-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .ws-badge {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 1px 7px;
+            border-radius: 10px;
+            background: #21262d;
+            color: var(--cyan);
+            border: 1px solid #30363d;
+        }
+
+        .ws-filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+            max-width: 620px;
+        }
+        .ws-filter-label {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-tertiary);
+            white-space: nowrap;
+        }
+        .ws-filter-input {
+            flex: 1;
+            background: #090d12;
+            border: 1px solid #30363d;
+            color: #58a6ff;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 3px;
+            outline: none;
+            transition: border-color 120ms;
+        }
+        .ws-filter-input:focus {
+            border-color: #1f6feb;
+            background: #0d1117;
+        }
+        .ws-filter-input.active-filter {
+            border-color: var(--green);
+            background: rgba(74, 222, 128, 0.05);
+        }
+
+        .ws-btn {
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 10.5px;
+            font-weight: 600;
+            padding: 3px 8px;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: all 100ms;
+            white-space: nowrap;
+        }
+        .ws-btn:hover {
+            background: #30363d;
+            color: var(--text-primary);
+            border-color: #8b949e;
+        }
+        .ws-btn.ws-btn-live {
+            color: var(--green);
+            border-color: var(--green-dim);
+        }
+        .ws-btn.ws-btn-paused {
+            color: var(--amber);
+            border-color: var(--amber-dim);
+        }
+
+        .ws-body {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            grid-template-rows: 1fr;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .ws-table-container {
+            overflow-y: auto;
+            overflow-x: auto;
+            border-right: 1px solid #30363d;
+            background: #090d12;
+        }
+
+        .ws-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            text-align: left;
+        }
+        .ws-table th {
+            position: sticky;
+            top: 0;
+            background: #161b22;
+            color: #8b949e;
+            padding: 5px 8px;
+            font-size: 10px;
+            font-weight: 700;
+            border-bottom: 1px solid #30363d;
+            z-index: 5;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+        .ws-table td {
+            padding: 4px 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .ws-table tr:hover td {
+            filter: brightness(1.2);
+        }
+        .ws-table tr.selected td {
+            background: #1f6feb !important;
+            color: #ffffff !important;
+            font-weight: 700;
+        }
+
+        /* Authentic Wireshark Protocol Tints */
+        .ws-proto-icmp { background: rgba(248, 113, 113, 0.12); color: #fca5a5; }
+        .ws-proto-tcp  { background: rgba(192, 132, 252, 0.12); color: #d8b4fe; }
+        .ws-proto-udp  { background: rgba(56, 189, 248, 0.12); color: #7dd3fc; }
+        .ws-proto-swim { background: rgba(74, 222, 128, 0.10); color: #86efac; }
+        .ws-proto-bgp  { background: rgba(251, 191, 36, 0.10); color: #fde047; }
+        .ws-proto-drop { background: rgba(239, 68, 68, 0.28); color: #fecaca; font-weight: 700; border-left: 3px solid #ef4444; }
+
+        /* Detail Pane (Tree + Hex Dump) */
+        .ws-detail-pane {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #0d1117;
+        }
+        .ws-detail-head {
+            padding: 5px 10px;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            color: #8b949e;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .ws-detail-content {
+            flex: 1;
+            display: grid;
+            grid-template-rows: 1fr 110px;
+            overflow: hidden;
+        }
+        .ws-tree-view {
+            overflow-y: auto;
+            padding: 8px 10px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            line-height: 1.5;
+            color: #c9d1d9;
+            border-bottom: 1px solid #30363d;
+        }
+        .ws-tree-branch {
+            cursor: pointer;
+            padding: 2px 0;
+            white-space: nowrap;
+        }
+        .ws-tree-branch:hover {
+            color: #58a6ff;
+        }
+        .ws-tree-leaf {
+            padding-left: 16px;
+            color: #8b949e;
+            font-size: 10.5px;
+        }
+
+        .ws-hex-view {
+            overflow: auto;
+            padding: 6px 10px;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 10px;
+            line-height: 1.4;
+            color: #7ee787;
+            background: #090d12;
+            white-space: pre;
+        }
+
+        /* ── CANVAS LINK DIRECT CONTEXT MENU ── */
+        .link-context-menu {
+            position: fixed;
+            z-index: 9999;
+            width: 250px;
+            background: rgba(22, 27, 34, 0.98);
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.06);
+            backdrop-filter: blur(12px);
+            padding: 6px;
+            font-family: var(--font-sans);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            animation: fadeInMenu 100ms ease-out;
+        }
+        @keyframes fadeInMenu {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .lcm-head {
+            padding: 6px 8px;
+            border-bottom: 1px solid #30363d;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .lcm-title {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--cyan);
+            text-transform: uppercase;
+        }
+        .lcm-endpoints {
+            font-size: 11px;
+            color: var(--text-primary);
+            font-weight: 600;
+            padding: 0 8px 6px 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            font-family: var(--font-mono);
+        }
+        .lcm-btn {
+            background: transparent;
+            border: none;
+            padding: 6px 8px;
+            border-radius: 4px;
+            text-align: left;
+            font-size: 11.5px;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 80ms;
+        }
+        .lcm-btn:hover {
+            background: #30363d;
+            color: #ffffff;
+        }
+        .lcm-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .lcm-dot.red { background: var(--red); box-shadow: 0 0 6px var(--red); }
+        .lcm-dot.yellow { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+        .lcm-dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+        .lcm-divider {
+            height: 1px;
+            background: #30363d;
+            margin: 4px 0;
+        }
+
+        /* Red packet drop burst animation on canvas */
+        @keyframes dropBurst {
+            0% { r: 6px; opacity: 1; stroke-width: 3px; }
+            100% { r: 42px; opacity: 0; stroke-width: 0.5px; }
+        }
+        .packet-drop-burst {
+            fill: rgba(248, 113, 113, 0.2);
+            stroke: #ef4444;
+            animation: dropBurst 600ms ease-out forwards;
+            pointer-events: none;
+        }
+
+/* ── WORKSPACE ── */
         #workspace {
             flex: 1;
             position: relative;
@@ -1183,6 +1520,7 @@ Type 'help' for available commands, or press Tab for ghost-text autocomplete.
         </div>
     </div>
     <div style="display:flex;gap:6px;align-items:center;">
+        <button class="btn" id="btn-ws-toggle" onclick="toggleWiresharkDock()" style="display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;font-weight:700;"><span style="color:var(--cyan)">🦈</span> Wireshark</button>
         <button class="btn" id="btn-cli-toggle" onclick="toggleCliDrawer()" style="display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;font-weight:700;"><span style="color:var(--green)">$_</span> CLI</button>
         <button class="btn" onclick="exportTopologyJson()" style="display:flex;align-items:center;gap:5px;font-size:11px;" title="Export topology to JSON"><span style="color:var(--cyan)">⬇</span> Export</button>
         <button class="btn" onclick="confirmResetCanvas()" style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-tertiary);" title="Reset active canvas"><span style="color:var(--red)">↺</span> Reset</button>
@@ -1278,6 +1616,86 @@ Type 'help' for available commands, or press Tab for ghost-text autocomplete.
                     </div>
                 </div>
 
+                <!-- Link Right-Click Direct Control Context Menu -->
+                <div id="link-context-menu" class="link-context-menu" style="display:none;">
+                    <div class="lcm-head">
+                        <span class="lcm-title" id="lcm-title">INTERFACE: ETH1/1</span>
+                        <span style="cursor:pointer;color:#8b949e;" onclick="closeLinkContextMenu()">&times;</span>
+                    </div>
+                    <div class="lcm-endpoints" id="lcm-endpoints">acc-sw-01 ↔ dist-sw-01</div>
+                    <button class="lcm-btn" onclick="execContextMenuAction('down')">
+                        <span class="lcm-dot red"></span> Disable Interface (Admin Down)
+                    </button>
+                    <button class="lcm-btn" onclick="execContextMenuAction('impair')">
+                        <span class="lcm-dot yellow"></span> Impair Link (Inject Delay & Loss)
+                    </button>
+                    <button class="lcm-btn" onclick="execContextMenuAction('up')">
+                        <span class="lcm-dot green"></span> Restore Interface (Admin UP)
+                    </button>
+                    <div class="lcm-divider"></div>
+                    <button class="lcm-btn" onclick="execContextMenuAction('trace')">
+                        <span>⚡</span> Trace ICMP Across This Link
+                    </button>
+                    <button class="lcm-btn" onclick="execContextMenuAction('filter')">
+                        <span>🦈</span> Filter Wireshark For This Link
+                    </button>
+                </div>
+
+                <!-- Wireshark Live Packet Simulation & Stream Inspector Dock -->
+                <div id="wireshark-dock" class="wireshark-dock">
+                    <div class="ws-header">
+                        <div class="ws-head-left">
+                            <span style="color:var(--cyan);">🦈</span>
+                            <span>WIRESHARK PACKET TRAIL</span>
+                            <span class="ws-badge" id="ws-badge-cnt">0 frames</span>
+                        </div>
+                        <div class="ws-filter-bar">
+                            <span class="ws-filter-label">Display Filter:</span>
+                            <input type="text" id="ws-filter-input" class="ws-filter-input" placeholder="e.g. icmp, tcp, udp, drop, 10.0.1.1" oninput="applyWiresharkFilter()" />
+                            <button class="ws-btn" onclick="applyWiresharkFilter()">Apply</button>
+                            <button class="ws-btn" onclick="clearWiresharkFilter()">Clear</button>
+                        </div>
+                        <div style="display:flex;gap:4px;align-items:center;">
+                            <button class="ws-btn ws-btn-live" id="ws-cap-btn" onclick="toggleWiresharkCapture()">● Capture Live</button>
+                            <button class="ws-btn" onclick="clearWiresharkPackets()">Clear</button>
+                            <button class="ws-btn" onclick="toggleWiresharkDock()" id="ws-dock-btn">[-] Minimize</button>
+                        </div>
+                    </div>
+                    <div class="ws-body" id="ws-body">
+                        <!-- Packet Table -->
+                        <div class="ws-table-container" id="ws-table-scroll">
+                            <table class="ws-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:45px;">No.</th>
+                                        <th style="width:115px;">Time (Rel)</th>
+                                        <th style="width:125px;">Source</th>
+                                        <th style="width:125px;">Destination</th>
+                                        <th style="width:90px;">Interface</th>
+                                        <th style="width:65px;">Proto</th>
+                                        <th style="width:55px;">Len</th>
+                                        <th>Protocol Summary / Telemetry Info</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ws-packet-tbody"></tbody>
+                            </table>
+                        </div>
+                        <!-- Packet Details & Hex View -->
+                        <div class="ws-detail-pane">
+                            <div class="ws-detail-head">
+                                <span>PACKET DISSECTOR TREE</span>
+                                <span id="ws-detail-label" style="color:var(--cyan);">Click frame to inspect</span>
+                            </div>
+                            <div class="ws-detail-content">
+                                <div class="ws-tree-view" id="ws-tree-view">
+                                    <div style="color:#8b949e;padding:12px;">Click any packet row above to inspect frame headers, Ethernet II, IP flags, and payload.</div>
+                                </div>
+                                <div class="ws-hex-view" id="ws-hex-view">0000  00 00 00 00 00 00 00 00 00 00 00 00 08 00 45 00  ..............E.
+0010  00 3c 1a 2b 40 00 40 01 00 00 7f 00 00 01 7f 00  .<.+@.@.........</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <!-- Inspector drawer -->
                 <div id="inspector">
                     <div class="insp-head">
@@ -1845,6 +2263,8 @@ function updateGraph() {
         .attr('class', d => linkClass(d))
         .on('mouseenter', (e, d) => showLinkTooltip(e, d))
         .on('mouseleave', () => hideLinkTooltip())
+        .on('contextmenu', (e, d) => { e.preventDefault(); openLinkContextMenu(e, d); })
+        .on('click', (e, d) => { if (e.altKey || e.ctrlKey) { e.preventDefault(); openLinkContextMenu(e, d); } })
         .merge(lb)
         .attr('class', d => linkClass(d));
 
@@ -2666,10 +3086,27 @@ async function executeTrace(src, dst, proto) {
         container.innerHTML = '';
 
         if (data.status === 'DROPPED' || !data.path_hops || data.path_hops.length === 0) {
-            statusEl.textContent = 'DROPPED (Unreachable)';
+            statusEl.textContent = 'DROPPED (Destination Unreachable)';
             statusEl.style.color = 'var(--red)';
-            container.innerHTML = '<span style="color:var(--red);font-size:11px;">Route Dropped: Connection severed or no path exists.</span>';
+            container.innerHTML = '<span style="color:var(--red);font-size:11px;">Route Dropped: Interface administrative down or no operational path.</span>';
             appendTerm(`[TRACE DROP] ${src} → ${dst}: Destination unreachable. Path severed.`, 'var(--red)');
+            
+            // Push Dropped Packet to Wireshark
+            pushWiresharkPacket({
+                src: src,
+                dst: dst,
+                iface: 'Eth1/1',
+                proto: 'ICMP',
+                len: 70,
+                status: 'DROPPED',
+                isTrace: true,
+                info: `ICMP Type 3, Code 1 (Destination Unreachable / Line Protocol Down) from gateway on path to ${dst}`
+            });
+
+            // Flash drop burst on source node
+            const srcNode = nodes.find(n => n.id === src);
+            if (srcNode) triggerDropBurst(srcNode.x, srcNode.y);
+
             isTracing = false;
             return;
         }
@@ -2704,8 +3141,20 @@ async function executeTrace(src, dst, proto) {
             container.appendChild(chip);
             container.scrollLeft = container.scrollWidth;
 
+            // Log into Wireshark stream with millisecond delta
+            pushWiresharkPacket({
+                src: i === 0 ? src : data.path_hops[i-1].ip,
+                dst: hop.ip,
+                iface: hop.interface || 'Eth1/1',
+                proto: proto,
+                len: 64,
+                status: 'OK',
+                isTrace: true,
+                info: `${proto} Echo Probe Hop ${i+1}/${data.path_hops.length}: ${hop.action} via ${hop.node} (RTT +${hop.delta_ms.toFixed(2)}ms)`
+            });
+
             // Sequential log in terminal
-            appendTerm(`  [HOP ${i+1}] ${hop.node} (${hop.ip}) → ${hop.action} (+${hop.delta_ms.toFixed(2)}ms)`);
+            appendTerm(`  [HOP ${i+1}] ${hop.node} (${hop.ip}) [${hop.interface || 'Eth1/1'}] → ${hop.action} (+${hop.delta_ms.toFixed(2)}ms)`);
 
             // Animate traveler to this hop
             if (currNode) {
@@ -3162,6 +3611,391 @@ async function exportTopologyJson() {
         toast('Export failed: ' + err.message);
     }
 }
+
+
+// ═════════════════════════════════════════════════════════════════════
+// 🦈 WIRESHARK LIVE PACKET DISSECTOR & SIMULATION ENGINE
+// ═════════════════════════════════════════════════════════════════════
+let wsPackets = [];
+let wsPacketCounter = 0;
+let wsStartTime = Date.now();
+let wsCaptureActive = true;
+let wsSelectedPacket = null;
+let currentContextMenuLink = null;
+let shiftClickSource = null;
+
+function toggleWiresharkDock() {
+    const dock = document.getElementById('wireshark-dock');
+    const btn = document.getElementById('ws-dock-btn');
+    if (!dock) return;
+    dock.classList.toggle('minimized');
+    if (btn) btn.textContent = dock.classList.contains('minimized') ? '[+] Maximize' : '[-] Minimize';
+}
+
+function toggleWiresharkCapture() {
+    wsCaptureActive = !wsCaptureActive;
+    const btn = document.getElementById('ws-cap-btn');
+    if (btn) {
+        if (wsCaptureActive) {
+            btn.innerHTML = '● Capture Live';
+            btn.className = 'ws-btn ws-btn-live';
+        } else {
+            btn.innerHTML = '⏸ Paused';
+            btn.className = 'ws-btn ws-btn-paused';
+        }
+    }
+}
+
+function clearWiresharkPackets() {
+    wsPackets = [];
+    wsPacketCounter = 0;
+    wsStartTime = Date.now();
+    wsSelectedPacket = null;
+    const tbody = document.getElementById('ws-packet-tbody');
+    if (tbody) tbody.innerHTML = '';
+    const badge = document.getElementById('ws-badge-cnt');
+    if (badge) badge.textContent = '0 frames';
+    const tree = document.getElementById('ws-tree-view');
+    if (tree) tree.innerHTML = '<div style="color:#8b949e;padding:12px;">Capture cleared. Waiting for packet frames...</div>';
+}
+
+// Push a packet frame into Wireshark stream with millisecond precision
+function pushWiresharkPacket(p) {
+    if (!wsCaptureActive && !p.isTrace) return;
+    wsPacketCounter++;
+
+    const now = Date.now();
+    const relMs = (now - wsStartTime) / 1000.0;
+    const timeFormatted = `+${relMs.toFixed(3)}s`;
+
+    const pkt = {
+        no: wsPacketCounter,
+        time: timeFormatted,
+        timestamp: new Date().toLocaleTimeString() + '.' + String(now % 1000).padStart(3, '0'),
+        src: p.src || '127.0.0.1',
+        dst: p.dst || '127.0.0.1',
+        iface: p.iface || 'Eth1/1',
+        proto: p.proto || 'ICMP',
+        len: p.len || 64,
+        info: p.info || 'Packet telemetry event',
+        status: p.status || 'OK',
+        rawPayload: p.rawPayload || ''
+    };
+
+    wsPackets.push(pkt);
+    if (wsPackets.length > 500) wsPackets.shift();
+
+    const badge = document.getElementById('ws-badge-cnt');
+    if (badge) badge.textContent = `${wsPackets.length} frames`;
+
+    renderWiresharkRow(pkt);
+}
+
+function renderWiresharkRow(pkt) {
+    const tbody = document.getElementById('ws-packet-tbody');
+    if (!tbody) return;
+
+    // Filter check
+    const filterVal = (document.getElementById('ws-filter-input')?.value || '').trim().toLowerCase();
+    let matches = true;
+    if (filterVal) {
+        const fullText = `${pkt.proto} ${pkt.src} ${pkt.dst} ${pkt.iface} ${pkt.info} ${pkt.status}`.toLowerCase();
+        if (!fullText.includes(filterVal)) matches = false;
+    }
+
+    const tr = document.createElement('tr');
+    tr.id = `ws-row-${pkt.no}`;
+
+    let protoClass = 'ws-proto-icmp';
+    const protoUpper = pkt.proto.toUpperCase();
+    if (pkt.status === 'DROPPED' || pkt.info.includes('DROPPED') || pkt.info.includes('DOWN')) protoClass = 'ws-proto-drop';
+    else if (protoUpper.includes('TCP')) protoClass = 'ws-proto-tcp';
+    else if (protoUpper.includes('UDP')) protoClass = 'ws-proto-udp';
+    else if (protoUpper.includes('SWIM') || protoUpper.includes('GOSSIP')) protoClass = 'ws-proto-swim';
+    else if (protoUpper.includes('BGP')) protoClass = 'ws-proto-bgp';
+
+    tr.className = protoClass;
+    if (!matches) tr.style.display = 'none';
+
+    tr.innerHTML = `
+        <td>${pkt.no}</td>
+        <td>${pkt.time}</td>
+        <td>${pkt.src}</td>
+        <td>${pkt.dst}</td>
+        <td>${pkt.iface}</td>
+        <td><strong>${pkt.proto}</strong></td>
+        <td>${pkt.len}</td>
+        <td>${pkt.info}</td>
+    `;
+
+    tr.onclick = () => selectWiresharkPacket(pkt, tr);
+    tbody.appendChild(tr);
+
+    // Auto-scroll
+    const scrollContainer = document.getElementById('ws-table-scroll');
+    if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
+}
+
+function applyWiresharkFilter() {
+    const filterVal = (document.getElementById('ws-filter-input')?.value || '').trim().toLowerCase();
+    const rows = document.querySelectorAll('#ws-packet-tbody tr');
+    let matchedCount = 0;
+
+    rows.forEach(tr => {
+        if (!filterVal) {
+            tr.style.display = '';
+            matchedCount++;
+        } else {
+            const text = tr.textContent.toLowerCase();
+            if (text.includes(filterVal)) {
+                tr.style.display = '';
+                matchedCount++;
+            } else {
+                tr.style.display = 'none';
+            }
+        }
+    });
+
+    const badge = document.getElementById('ws-badge-cnt');
+    if (badge) badge.textContent = filterVal ? `${matchedCount} / ${wsPackets.length} frames` : `${wsPackets.length} frames`;
+}
+
+function clearWiresharkFilter() {
+    const inp = document.getElementById('ws-filter-input');
+    if (inp) inp.value = '';
+    applyWiresharkFilter();
+}
+
+function selectWiresharkPacket(pkt, rowEl) {
+    wsSelectedPacket = pkt;
+    document.querySelectorAll('#ws-packet-tbody tr').forEach(r => r.classList.remove('selected'));
+    if (rowEl) rowEl.classList.add('selected');
+
+    const label = document.getElementById('ws-detail-label');
+    if (label) label.textContent = `Frame ${pkt.no}: ${pkt.proto} (${pkt.src} ➔ ${pkt.dst})`;
+
+    renderPacketDissector(pkt);
+    renderHexDump(pkt);
+
+    // Highlight source and target on canvas
+    d3.selectAll('g.node-g').select('.node-circle').style('stroke', null).style('stroke-width', null);
+    d3.selectAll('g.node-g')
+        .filter(n => n.id === pkt.src || n.id === pkt.dst || n.ip === pkt.src || n.ip === pkt.dst)
+        .select('.node-circle')
+        .style('stroke', pkt.status === 'DROPPED' ? 'var(--red)' : 'var(--cyan)')
+        .style('stroke-width', '3px');
+}
+
+function renderPacketDissector(pkt) {
+    const tree = document.getElementById('ws-tree-view');
+    if (!tree) return;
+
+    const isDrop = pkt.status === 'DROPPED';
+    tree.innerHTML = `
+        <div class="ws-tree-branch">▼ <strong>Frame ${pkt.no}:</strong> ${pkt.len} bytes on wire (${pkt.len * 8} bits) on interface <code>${pkt.iface}</code></div>
+        <div class="ws-tree-leaf">Arrival Time: ${pkt.timestamp} UTC</div>
+        <div class="ws-tree-leaf">Frame Number: ${pkt.no} | Protocols in frame: eth:ethertype:ip:${pkt.proto.toLowerCase()}</div>
+
+        <div class="ws-tree-branch" style="margin-top:6px;">▼ <strong>Ethernet II,</strong> Src: 00:1a:2b:${(pkt.no % 89 + 10)}:4d:5e, Dst: 00:0c:29:${(pkt.no % 79 + 20)}:98:76</div>
+        <div class="ws-tree-leaf">Destination: 00:0c:29:${(pkt.no % 79 + 20)}:98:76 (Physical Port ${pkt.iface})</div>
+        <div class="ws-tree-leaf">Source: 00:1a:2b:${(pkt.no % 89 + 10)}:4d:5e</div>
+        <div class="ws-tree-leaf">Type: IPv4 (0x0800)</div>
+
+        <div class="ws-tree-branch" style="margin-top:6px;">▼ <strong>Internet Protocol Version 4,</strong> Src: ${pkt.src}, Dst: ${pkt.dst}</div>
+        <div class="ws-tree-leaf">0100 .... = Version: 4 | Header Length: 20 bytes (5)</div>
+        <div class="ws-tree-leaf">Differentiated Services Field: 0x00 (DSCP: CS0, ECN: Not-ECT)</div>
+        <div class="ws-tree-leaf">Total Length: ${pkt.len} | Identification: 0x${(1000 + pkt.no).toString(16)}</div>
+        <div class="ws-tree-leaf">Flags: 0x02, Don't fragment (DF) | Time to Live: 64</div>
+        <div class="ws-tree-leaf">Protocol: ${pkt.proto} | Header Checksum: 0x${(3000 + pkt.no).toString(16)} [verified]</div>
+
+        <div class="ws-tree-branch" style="margin-top:6px;color:${isDrop ? '#fca5a5' : '#7dd3fc'};">
+            ▼ <strong>${isDrop ? 'ICMP Destination Unreachable / Link Failure' : pkt.proto + ' Protocol Details'}</strong>
+        </div>
+        <div class="ws-tree-leaf">${pkt.info}</div>
+        <div class="ws-tree-leaf">Operational Status: <strong>${pkt.status}</strong></div>
+    `;
+}
+
+function renderHexDump(pkt) {
+    const hexEl = document.getElementById('ws-hex-view');
+    if (!hexEl) return;
+
+    let out = '';
+    const hexBytes = ['00','0c','29','4f','8e','12','00','1a','2b','88','99','aa','08','00','45','00',
+                      '00','40','4f','12','40','00','40','01','3a','4b','c0','a8','01','65','ac','10',
+                      '01','0a','08','00','4d','21','1b','2c','00','01','61','62','63','64','65','66',
+                      '67','68','69','6a','6b','6c','6d','6e','6f','70','71','72','73','74','75','76'];
+    
+    for (let offset = 0; offset < Math.min(pkt.len, 64); offset += 16) {
+        const offsetHex = offset.toString(16).padStart(4, '0');
+        const slice = hexBytes.slice(offset, offset + 16);
+        const hexStr = slice.join(' ').padEnd(48, ' ');
+        const asciiStr = slice.map(h => (parseInt(h, 16) >= 32 && parseInt(h, 16) <= 126) ? String.fromCharCode(parseInt(h, 16)) : '.').join('');
+        out += `${offsetHex}   ${hexStr}   ${asciiStr}\n`;
+    }
+    hexEl.textContent = out;
+}
+
+// ── DIRECT CANVAS LINK CONTEXT MENU ──
+function openLinkContextMenu(e, d) {
+    currentContextMenuLink = d;
+    const s = d.source.id || d.source;
+    const t = d.target.id || d.target;
+
+    const menu = document.getElementById('link-context-menu');
+    if (!menu) return;
+
+    const title = document.getElementById('lcm-title');
+    const ep = document.getElementById('lcm-endpoints');
+    if (title) title.textContent = `INTERFACE: ${d.src_port || 'Eth1/1'}`;
+    if (ep) ep.textContent = `${s} ↔ ${t}`;
+
+    const x = Math.min(window.innerWidth - 260, Math.max(10, e.clientX - 10));
+    const y = Math.min(window.innerHeight - 240, Math.max(10, e.clientY - 10));
+
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
+    menu.style.display = 'flex';
+}
+
+function closeLinkContextMenu() {
+    const menu = document.getElementById('link-context-menu');
+    if (menu) menu.style.display = 'none';
+    currentContextMenuLink = null;
+}
+
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('link-context-menu');
+    if (menu && menu.style.display !== 'none' && !menu.contains(e.target)) {
+        closeLinkContextMenu();
+    }
+});
+
+async function execContextMenuAction(action) {
+    if (!currentContextMenuLink) return;
+    const s = currentContextMenuLink.source.id || currentContextMenuLink.source;
+    const t = currentContextMenuLink.target.id || currentContextMenuLink.target;
+    closeLinkContextMenu();
+
+    if (action === 'filter') {
+        const inp = document.getElementById('ws-filter-input');
+        if (inp) {
+            inp.value = s;
+            applyWiresharkFilter();
+            toggleWiresharkDock();
+        }
+        return;
+    }
+
+    if (action === 'trace') {
+        executeTrace(s, t, 'ICMP');
+        return;
+    }
+
+    await applyChaosAction(action, s, t);
+
+    // Push event into Wireshark stream immediately
+    pushWiresharkPacket({
+        src: s,
+        dst: t,
+        iface: currentContextMenuLink.src_port || 'Eth1/1',
+        proto: action === 'down' ? 'LINK_DOWN' : (action === 'impair' ? 'QOS_IMPAIR' : 'LINK_UP'),
+        len: 128,
+        status: action === 'down' ? 'DROPPED' : 'OK',
+        info: action === 'down' 
+            ? `Interface ${currentContextMenuLink.src_port || 'Eth1/1'} administrative shutdown. Routing adjacency severed.`
+            : (action === 'impair' 
+                ? `Link impairment injected (+35ms latency, 20% packet drop policy active).`
+                : `Interface ${currentContextMenuLink.src_port || 'Eth1/1'} line protocol restored to UP.`)
+    });
+}
+
+// ── SHIFT-CLICK DIRECT NODE TRACING ──
+function handleNodeClick(e, d) {
+    if (e.shiftKey) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!shiftClickSource) {
+            shiftClickSource = d.id;
+            d3.selectAll('g.node-g').filter(n => n.id === d.id).select('.node-circle').style('stroke', 'var(--cyan)').style('stroke-width', '3.5px');
+            toast(`Source armed: ${d.id}. Shift-click destination node to trace path.`);
+            const srcSel = document.getElementById('trc-src');
+            if (srcSel) srcSel.value = d.id;
+        } else if (shiftClickSource === d.id) {
+            shiftClickSource = null;
+            d3.selectAll('g.node-g').select('.node-circle').style('stroke', null).style('stroke-width', null);
+            toast('Trace selection cleared.');
+        } else {
+            const src = shiftClickSource;
+            const dst = d.id;
+            shiftClickSource = null;
+            d3.selectAll('g.node-g').select('.node-circle').style('stroke', null).style('stroke-width', null);
+            const dstSel = document.getElementById('trc-dst');
+            if (dstSel) dstSel.value = dst;
+            toast(`Executing trace: ${src} ➔ ${dst}`);
+            executeTrace(src, dst, 'ICMP');
+        }
+        return;
+    }
+    openInspector(d);
+}
+
+// ── TRIGGER CANVAS DROPPED BURST ON SEVERED LINK ──
+function triggerDropBurst(x, y) {
+    const burst = root.select('.layer-packet')
+        .append('circle')
+        .attr('class', 'packet-drop-burst')
+        .attr('cx', x)
+        .attr('cy', y)
+        .attr('r', 8);
+
+    setTimeout(() => burst.remove(), 650);
+}
+
+// ── BACKGROUND LIVE WIRESHARK SIMULATOR TICKER ──
+setInterval(() => {
+    if (!wsCaptureActive || nodes.length < 2) return;
+
+    const rIdx1 = Math.floor(Math.random() * nodes.length);
+    let rIdx2 = Math.floor(Math.random() * nodes.length);
+    if (rIdx1 === rIdx2) rIdx2 = (rIdx1 + 1) % nodes.length;
+
+    const n1 = nodes[rIdx1];
+    const n2 = nodes[rIdx2];
+
+    const protos = ['ICMP', 'TCP', 'UDP', 'SWIM', 'BGP'];
+    const proto = protos[Math.floor(Math.random() * protos.length)];
+
+    let info = '';
+    let len = 64;
+    if (proto === 'ICMP') {
+        const seq = Math.floor(Math.random() * 200) + 1;
+        info = `Echo (ping) request id=0x${(1000 + seq).toString(16)} seq=${seq} ttl=64`;
+    } else if (proto === 'TCP') {
+        info = `443 ➔ ${Math.floor(Math.random() * 20000 + 40000)} [ACK] Seq=1 Ack=1 Win=65535 Len=0`;
+        len = 54;
+    } else if (proto === 'UDP') {
+        info = `UDP sweep probe: port ${Math.floor(Math.random() * 10 + 33435)} ➔ 33435 (RTT 1.${Math.floor(Math.random()*8)}ms)`;
+        len = 84;
+    } else if (proto === 'SWIM') {
+        info = `Memberlist cluster gossip heartbeat seq=${Math.floor(Math.random() * 500)}`;
+        len = 112;
+    } else if (proto === 'BGP') {
+        info = `BGP KEEPALIVE Message (Spine-Leaf Clos Convergence)`;
+        len = 19;
+    }
+
+    pushWiresharkPacket({
+        src: n1.ip || n1.id,
+        dst: n2.ip || n2.id,
+        iface: n1.role === 'core' ? 'Eth1/1' : (n1.role === 'distribution' ? 'Eth1/2' : 'Te1/1'),
+        proto: proto,
+        len: len,
+        status: 'OK',
+        info: info
+    });
+}, 1400);
 
 initGraph();
 initCliWindowDrag();
