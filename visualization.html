@@ -178,6 +178,34 @@
             z-index: 10;
         }
 
+        .canvas-filter-bar {
+            position: absolute;
+            top: 12px;
+            left: 310px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 10;
+            background: rgba(17,17,17,0.92);
+            border: 1px solid var(--border-mid);
+            border-radius: 4px;
+            padding: 3px 8px;
+            backdrop-filter: blur(8px);
+        }
+        .canvas-filter-bar input, .canvas-filter-bar select {
+            background: var(--bg-input);
+            border: 1px solid var(--border-dim);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 11px;
+            padding: 3px 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+        .canvas-filter-bar input:focus, .canvas-filter-bar select:focus {
+            border-color: var(--cyan);
+        }
+
         .c-btn {
             background: rgba(17,17,17,0.92);
             border: 1px solid var(--border-mid);
@@ -1156,7 +1184,8 @@ Type 'help' for available commands, or press Tab for ghost-text autocomplete.
     </div>
     <div style="display:flex;gap:6px;align-items:center;">
         <button class="btn" id="btn-cli-toggle" onclick="toggleCliDrawer()" style="display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;font-weight:700;"><span style="color:var(--green)">$_</span> CLI</button>
-        <button class="btn btn-red" onclick="resetToEmptyCanvas()">Clear All</button>
+        <button class="btn" onclick="exportTopologyJson()" style="display:flex;align-items:center;gap:5px;font-size:11px;" title="Export topology to JSON"><span style="color:var(--cyan)">⬇</span> Export</button>
+        <button class="btn" onclick="confirmResetCanvas()" style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-tertiary);" title="Reset active canvas"><span style="color:var(--red)">↺</span> Reset</button>
         <button class="btn btn-green" onclick="openEnterpriseModal()">Load Enterprise</button>
     </div>
 </div>
@@ -1165,7 +1194,7 @@ Type 'help' for available commands, or press Tab for ghost-text autocomplete.
 <div id="tab-bar">
     <button class="tab-btn active" onclick="switchTab('pane-main')">Workspace</button>
     <button class="tab-btn" onclick="switchTab('pane-analytics')">Analytics</button>
-    <button class="tab-btn" onclick="switchTab('pane-chaos')">Chaos Lab</button>
+    <button class="tab-btn" onclick="switchTab('pane-chaos')">Fault Simulation</button>
     <button class="tab-btn" onclick="switchTab('pane-logs')">Audit & Alerts</button>
 </div>
 
@@ -1189,13 +1218,39 @@ Type 'help' for available commands, or press Tab for ghost-text autocomplete.
                 </svg>
 
                 <div class="canvas-controls">
-                    <button class="c-btn on" onclick="setLayout('force')">Force</button>
-                    <button class="c-btn" onclick="setLayout('hierarchy')">Hierarchy</button>
+                    <button class="c-btn" onclick="setLayout('force')">Force</button>
+                    <button class="c-btn on" onclick="setLayout('hierarchy')">Hierarchy</button>
                     <button class="c-btn" onclick="setLayout('ring')">Ring</button>
                     <button class="c-btn" onclick="setLayout('grid')">Grid</button>
                     <button class="c-btn" onclick="zoomIn()">+</button>
                     <button class="c-btn" onclick="zoomOut()">-</button>
                     <button class="c-btn" onclick="resetZoom()">Fit</button>
+                </div>
+
+                <!-- Network Scope & Subnet Filter Toolbar -->
+                <div class="canvas-filter-bar">
+                    <input type="text" id="filter-search" placeholder="Filter node/IP..." oninput="applyCanvasFilter()" style="width:130px;" />
+                    <select id="filter-role" onchange="applyCanvasFilter()">
+                        <option value="">All Roles</option>
+                        <option value="core">Core Router</option>
+                        <option value="spine">Spine Fabric</option>
+                        <option value="distribution">Distribution</option>
+                        <option value="leaf">Leaf Switch</option>
+                        <option value="access">Access Switch</option>
+                        <option value="firewall">Firewall / DMZ</option>
+                        <option value="server">Server</option>
+                        <option value="workstation">Workstation</option>
+                    </select>
+                    <select id="filter-subnet" onchange="applyCanvasFilter()">
+                        <option value="">All Subnets</option>
+                        <option value="10.0.0.0/24">10.0.0.0/24 (Core)</option>
+                        <option value="10.0.1.0/24">10.0.1.0/24 (Distribution)</option>
+                        <option value="10.0.2.0/24">10.0.2.0/24 (Access)</option>
+                        <option value="10.0.3.0/24">10.0.3.0/24 (DMZ/FW)</option>
+                        <option value="172.16.1.0/24">172.16.1.0/24 (Servers)</option>
+                        <option value="192.168.1.0/24">192.168.1.0/24 (Workstations)</option>
+                    </select>
+                    <button class="btn" style="padding:2px 7px;font-size:10px;" onclick="clearCanvasFilter()">Clear</button>
                 </div>
 
                 <!-- Canvas Legend -->
@@ -1205,11 +1260,11 @@ Type 'help' for available commands, or press Tab for ghost-text autocomplete.
                         <span id="legend-toggle" style="cursor:pointer;color:var(--text-tertiary);padding-left:8px;" onclick="toggleLegend()">[-]</span>
                     </div>
                     <div id="legend-items">
-                        <div class="legend-row"><span class="legend-bar core"></span><span>40G Core Backbone</span></div>
-                        <div class="legend-row"><span class="legend-bar dist"></span><span>10G Distribution</span></div>
-                        <div class="legend-row"><span class="legend-bar access"></span><span>1G Access Fabric</span></div>
-                        <div class="legend-row"><span class="legend-bar degraded"></span><span>Degraded (Loss &gt; 15%)</span></div>
-                        <div class="legend-row"><span class="legend-bar severed"></span><span>Severed / Down</span></div>
+                        <div class="legend-row"><span class="legend-bar core"></span><span>Core / Spine Fabric Trunk</span></div>
+                        <div class="legend-row"><span class="legend-bar dist"></span><span>Distribution / Leaf Uplink</span></div>
+                        <div class="legend-row"><span class="legend-bar access"></span><span>Access / Endpoint Interface</span></div>
+                        <div class="legend-row"><span class="legend-bar degraded"></span><span>Impaired (Latency / Loss Injected)</span></div>
+                        <div class="legend-row"><span class="legend-bar severed"></span><span>Link Down (Admin / Line Down)</span></div>
                     </div>
                 </div>
 
@@ -1235,11 +1290,15 @@ Type 'help' for available commands, or press Tab for ghost-text autocomplete.
                         <tr><td>Device Role</td><td id="insp-role">--</td></tr>
                         <tr><td>Department</td><td id="insp-dept">--</td></tr>
                         <tr><td>Location / Rack</td><td id="insp-rack">--</td></tr>
+                        <tr><td>Interface Ports</td><td id="insp-ports" style="font-size:10.5px;color:var(--cyan)">--</td></tr>
                         <tr><td>Operational State</td><td id="insp-status" style="color:var(--green)">Online</td></tr>
                         <tr><td>RTT Latency</td><td id="insp-rtt">--</td></tr>
                     </table>
-                    <div style="margin-top:auto;display:flex;gap:6px;">
-                        <button class="btn-solid" style="flex:1" onclick="traceFromInspector()">Trace Route</button>
+                    <div style="margin-top:auto;display:flex;flex-direction:column;gap:6px;">
+                        <div style="display:flex;gap:6px;">
+                            <button class="btn-solid" style="flex:1" onclick="traceFromInspector()">Trace Route</button>
+                            <button class="btn" id="btn-blast-radius" style="flex:1" onclick="toggleBlastRadius()" title="Isolate immediate neighbors">Blast Radius</button>
+                        </div>
                         <button class="btn" onclick="closeInspector()">Close</button>
                     </div>
                 </div>
@@ -1344,38 +1403,39 @@ Type 'help' for available commands, or press Tab for ghost-text autocomplete.
         </div>
     </div>
 
-    <!-- PANE 3: CHAOS LAB -->
+    <!-- PANE 3: FAULT INJECTION & RESILIENCE SIMULATION -->
     <div id="pane-chaos" class="pane">
         <div class="chaos-page">
             <div class="panel">
-                <div class="panel-head"><h3>Fault Injection</h3></div>
+                <div class="panel-head"><h3>Fault Injection & Resilience Simulation</h3></div>
                 <div class="panel-body">
                     <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
                         <div class="form-group">
-                            <label class="form-label">Endpoint A</label>
+                            <label class="form-label">Source Node</label>
                             <select id="chaos-src" class="form-select"></select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Endpoint B</label>
+                            <label class="form-label">Destination Node</label>
                             <select id="chaos-dst" class="form-select"></select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Action</label>
+                            <label class="form-label">Failure Action</label>
                             <select id="chaos-act" class="form-select">
-                                <option value="sever">Sever Link</option>
-                                <option value="restore">Restore Link</option>
+                                <option value="down">Interface Admin Down (Line Drop)</option>
+                                <option value="impair">Impair Link (Inject Latency/Loss)</option>
+                                <option value="restore">Restore Operational State (UP)</option>
                             </select>
                         </div>
-                        <button class="btn btn-red" onclick="executeChaos()">Execute</button>
+                        <button class="btn btn-red" onclick="executeChaos()">Apply Simulation</button>
                     </div>
                 </div>
             </div>
             <div class="panel">
                 <div class="panel-head">
-                    <h3>Severed Links</h3>
-                    <button class="btn btn-green" onclick="restoreAllLinks()">Restore All</button>
+                    <h3>Impaired & Down Interfaces</h3>
+                    <button class="btn btn-green" onclick="restoreAllLinks()">Restore All Interfaces</button>
                 </div>
-                <div class="panel-body" id="severed-list" style="color:var(--text-tertiary);font-size:12px;">All links nominal.</div>
+                <div class="panel-body" id="severed-list" style="color:var(--text-tertiary);font-size:12px;">All interfaces operational and nominal.</div>
             </div>
         </div>
     </div>
@@ -1577,7 +1637,7 @@ let links = [];
 let activeFaults = new Set();
 let selectedNode = null;
 let simulation, linkSel, nodeSel, zoomBehavior;
-let currentLayout = 'force';
+let currentLayout = 'hierarchy';
 let termHistory = [];
 let termHistoryIdx = -1;
 let isTracing = false;
@@ -1870,7 +1930,7 @@ function applyLayout(type) {
         nodes.forEach(n => { n.fx = null; n.fy = null; });
         simulation.alpha(0.3).restart();
     } else if (type === 'hierarchy') {
-        const tierRank = { core: 1, distribution: 2, firewall: 2.5, access: 3, server: 4, workstation: 4 };
+        const tierRank = { core: 1, spine: 1, distribution: 2, leaf: 2, firewall: 2.5, access: 3, server: 4, workstation: 4 };
         const groups = {};
         nodes.forEach(n => {
             const r = n.role || 'access';
@@ -1887,7 +1947,7 @@ function applyLayout(type) {
     } else if (type === 'ring') {
         const cx = w / 2;
         const cy = h / 2;
-        const tierRadius = { core: 0, distribution: 120, firewall: 180, access: 240, server: 310, workstation: 310 };
+        const tierRadius = { core: 0, spine: 0, distribution: 120, leaf: 120, firewall: 180, access: 240, server: 310, workstation: 310 };
         const groups = {};
         nodes.forEach(n => {
             const r = n.role || 'access';
@@ -1997,6 +2057,16 @@ function inspectNode(d) {
     document.getElementById('insp-role').textContent = (d.role || 'access').toUpperCase();
     document.getElementById('insp-dept').textContent = d.department || d.dept || (d.id.includes('eng') ? 'Engineering' : (d.id.includes('fin') ? 'Finance' : (d.id.includes('srv') ? 'Data Center' : 'IT & SecOps')));
     document.getElementById('insp-rack').textContent = d.rack || (d.id.includes('core') || d.id.includes('gw') ? 'Rack-CR1' : (d.id.includes('srv') ? 'Rack-DC1' : 'Office Distribution'));
+    let portsText = 'eth0 [1G]';
+    const roleKey = (d.role || 'access').toLowerCase();
+    if (roleKey === 'core' || roleKey === 'spine') portsText = 'Eth1/1 [400G], Eth1/2 [400G], Eth1/3 [100G]';
+    else if (roleKey === 'distribution' || roleKey === 'leaf') portsText = 'Eth1/1 [100G Trunk], Eth1/48 [25G Fabric]';
+    else if (roleKey === 'access') portsText = 'Te1/1 [10G Uplink], Gi0/1-24 [1G Access]';
+    else if (roleKey === 'firewall') portsText = 'ge-0/0/0 [Untrust], ge-0/0/1 [Trust], ge-0/0/2 [DMZ]';
+    else if (roleKey === 'server') portsText = 'eth0 [10G Bond], eth1 [10G Redundant]';
+    else if (roleKey === 'workstation') portsText = 'Ethernet0 [1G Access]';
+    const pEl = document.getElementById('insp-ports');
+    if (pEl) pEl.textContent = portsText;
     document.getElementById('insp-rtt').textContent = (1.1 + Math.random() * 0.8).toFixed(2) + 'ms';
     document.getElementById('inspector').classList.add('open');
     updateGraph();
@@ -2629,7 +2699,8 @@ async function executeTrace(src, dst, proto) {
             // Create hop chip in UI
             const chip = document.createElement('div');
             chip.className = 'hop-chip';
-            chip.innerHTML = `<span class="hop-name">${hop.node}</span><span class="hop-detail">${hop.action} +${hop.delta_ms.toFixed(1)}ms</span>`;
+            const ifaceBadge = hop.interface ? `<span style="color:var(--cyan);font-size:9.5px;font-family:var(--font-mono);margin-left:4px;">[${hop.interface}]</span>` : '';
+            chip.innerHTML = `<span class="hop-name">${hop.node}${ifaceBadge}</span><span class="hop-detail">${hop.action} +${hop.delta_ms.toFixed(1)}ms</span>`;
             container.appendChild(chip);
             container.scrollLeft = container.scrollWidth;
 
@@ -2959,6 +3030,139 @@ function connectSSE() {
 }
 
 // ── Bootstrap ──
+
+// ── Enterprise Filtering, Blast Radius & Topology Export ──
+let isolatedBlastNode = null;
+
+function toggleBlastRadius() {
+    if (!selectedNode) return;
+    if (isolatedBlastNode === selectedNode.id) {
+        isolatedBlastNode = null;
+        const btn = document.getElementById('btn-blast-radius');
+        if (btn) btn.classList.remove('btn-green');
+    } else {
+        isolatedBlastNode = selectedNode.id;
+        const btn = document.getElementById('btn-blast-radius');
+        if (btn) btn.classList.add('btn-green');
+    }
+    applyCanvasFilter();
+}
+
+function applyCanvasFilter() {
+    const searchVal = (document.getElementById('filter-search')?.value || '').trim().toLowerCase();
+    const roleVal = (document.getElementById('filter-role')?.value || '').trim().toLowerCase();
+    const subnetVal = (document.getElementById('filter-subnet')?.value || '').trim();
+
+    let blastNeighbors = null;
+    if (isolatedBlastNode) {
+        blastNeighbors = new Set([isolatedBlastNode]);
+        links.forEach(l => {
+            const s = l.source.id || l.source;
+            const t = l.target.id || l.target;
+            if (s === isolatedBlastNode) blastNeighbors.add(t);
+            if (t === isolatedBlastNode) blastNeighbors.add(s);
+        });
+    }
+
+    const matchingNodeIds = new Set();
+    nodes.forEach(n => {
+        const id = (n.id || '').toLowerCase();
+        const ip = (n.ip || '').toLowerCase();
+        const role = (n.role || 'access').toLowerCase();
+        const subnet = n.subnet || '';
+
+        let match = true;
+        if (searchVal && !id.includes(searchVal) && !ip.includes(searchVal)) match = false;
+        if (roleVal && role !== roleVal) match = false;
+        if (subnetVal && subnet !== subnetVal) match = false;
+        if (blastNeighbors && !blastNeighbors.has(n.id)) match = false;
+
+        if (match) matchingNodeIds.add(n.id);
+    });
+
+    const isFiltering = searchVal || roleVal || subnetVal || blastNeighbors;
+
+    d3.selectAll('g.node-g').each(function(d) {
+        const sel = d3.select(this);
+        if (!isFiltering) {
+            sel.style('opacity', 1);
+            sel.select('.node-circle').style('stroke', null).style('stroke-width', null);
+        } else if (matchingNodeIds.has(d.id)) {
+            sel.style('opacity', 1);
+            sel.select('.node-circle').style('stroke', 'var(--cyan)').style('stroke-width', '2.5px');
+        } else {
+            sel.style('opacity', 0.12);
+            sel.select('.node-circle').style('stroke', null).style('stroke-width', null);
+        }
+    });
+
+    d3.selectAll('.link-line').each(function(d) {
+        const s = d.source.id || d.source;
+        const t = d.target.id || d.target;
+        const sel = d3.select(this);
+        if (!isFiltering) {
+            sel.style('opacity', 1);
+        } else if (matchingNodeIds.has(s) && matchingNodeIds.has(t)) {
+            sel.style('opacity', 1);
+        } else {
+            sel.style('opacity', 0.06);
+        }
+    });
+}
+
+function clearCanvasFilter() {
+    const s = document.getElementById('filter-search');
+    const r = document.getElementById('filter-role');
+    const sub = document.getElementById('filter-subnet');
+    if (s) s.value = '';
+    if (r) r.value = '';
+    if (sub) sub.value = '';
+    isolatedBlastNode = null;
+    const btn = document.getElementById('btn-blast-radius');
+    if (btn) btn.classList.remove('btn-green');
+    applyCanvasFilter();
+}
+
+function confirmResetCanvas() {
+    if (confirm("Reset network topology canvas? This will clear all local devices.")) {
+        resetToEmptyCanvas();
+    }
+}
+
+async function exportTopologyJson() {
+    try {
+        const res = await fetch(`http://${API}/v1/topology/export`);
+        let data;
+        if (res.ok) {
+            data = await res.json();
+        } else {
+            data = {
+                export_timestamp: new Date().toISOString(),
+                nodes_count: nodes.length,
+                links_count: links.length,
+                nodes: nodes,
+                links: links.map(l => ({
+                    src: l.source.id || l.source,
+                    dst: l.target.id || l.target,
+                    state: l.state || 'UP'
+                }))
+            };
+        }
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `dnms-topology-export-${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast('Topology exported successfully as JSON');
+    } catch (err) {
+        toast('Export failed: ' + err.message);
+    }
+}
+
 initGraph();
 initCliWindowDrag();
 syncArchitectUI();

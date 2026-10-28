@@ -336,7 +336,7 @@ func (g *NetworkGraph) IsLinkSevered(src, dst string) bool {
 	g.LinksLock.RLock()
 	defer g.LinksLock.RUnlock()
 	for _, key := range []string{src + ";" + dst, dst + ";" + src} {
-		if l, ok := g.LinksMap[key]; ok && l.State == "SEVERED" {
+		if l, ok := g.LinksMap[key]; ok && (l.State == "SEVERED" || l.State == "DOWN" || l.State == "ADMIN_DOWN") {
 			return true
 		}
 	}
@@ -348,7 +348,7 @@ func (g *NetworkGraph) RestoreAllLinks() int {
 	defer g.LinksLock.Unlock()
 	count := 0
 	for _, l := range g.LinksMap {
-		if l.State == "SEVERED" {
+		if l.State != "UP" {
 			l.State = "UP"
 			count++
 		}

@@ -113,6 +113,8 @@ func (h *HTTPApi) Start(ctx context.Context, mux *http.ServeMux) {
 	mux.HandleFunc("/v1/topology/clear", h.handleClearTopology)
 	mux.HandleFunc("/v1/topology/load-enterprise", h.handleLoadEnterprise)
 	mux.HandleFunc("/v1/topology/setup-custom", h.handleSetupCustom)
+	mux.HandleFunc("/v1/topology/export", h.handleExportTopology)
+	mux.HandleFunc("/v1/fault/inject", h.handleChaosFault)
 
 	// Web dashboard file serving
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -542,7 +544,7 @@ func (h *HTTPApi) handleChaosFault(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Src    string `json:"src"`
 		Dst    string `json:"dst"`
-		Action string `json:"action"` // "sever" | "restore" | "heal"
+		Action string `json:"action"` // "down" | "sever" | "restore" | "heal" | "up" | "impair" | "degrade"
 		Source string `json:"source"`
 		Target string `json:"target"`
 	}
@@ -557,39 +559,52 @@ func (h *HTTPApi) handleChaosFault(w http.ResponseWriter, r *http.Request) {
 		req.Dst = req.Target
 	}
 
-	if req.Action == "heal" || req.Action == "restore_all" || (req.Action == "restore" && req.Src == "" && req.Dst == "") {
+	act := strings.ToLower(req.Action)
+	if act == "heal" || act == "restore_all" || act == "up_all" || ((act == "restore" || act == "up") && req.Src == "" && req.Dst == "") {
 		restoredCount := h.m.Graph.RestoreAllLinks()
-		logrus.Infof("[CHAOS] Restored all severed links (%d restored)", restoredCount)
+		logrus.Infof("[FAULT_SIMULATION] Restored all links (%d restored to UP)", restoredCount)
 		if h.auditStore != nil {
 			h.auditStore.Record(&AuditEvent{
 				Node:        h.localName,
-				Category:    "CHAOS",
+				Category:    "FAULT_SIMULATION",
 				Action:      "ALL_LINKS_RESTORED",
-				Description: fmt.Sprintf("All %d severed links healed to nominal state", restoredCount),
+				Description: fmt.Sprintf("All %d interface links restored to nominal UP state", restoredCount),
 				Level:       AuditLevelInfo,
 			})
 		}
-	} else if req.Action == "sever" {
-		h.m.Graph.SetLinkState(req.Src, req.Dst, "SEVERED")
-		logrus.Infof("[CHAOS] Fault injection applied: link [%s <-> %s] severed", req.Src, req.Dst)
+	} else if act == "sever" || act == "down" || act == "admin_down" || act == "cut" || act == "disable" {
+		h.m.Graph.SetLinkState(req.Src, req.Dst, "DOWN")
+		logrus.Infof("[FAULT_SIMULATION] Link admin down: [%s <-> %s]", req.Src, req.Dst)
 		if h.auditStore != nil {
 			h.auditStore.Record(&AuditEvent{
 				Node:        req.Src,
-				Category:    "CHAOS",
-				Action:      "LINK_SEVERED",
-				Description: fmt.Sprintf("Interface link severed: %s <-> %s (State: SEVERED)", req.Src, req.Dst),
+				Category:    "FAULT_SIMULATION",
+				Action:      "LINK_ADMIN_DOWN",
+				Description: fmt.Sprintf("Interface link set administrative down: %s <-> %s (State: DOWN)", req.Src, req.Dst),
 				Level:       AuditLevelCrit,
+			})
+		}
+	} else if act == "impair" || act == "degrade" {
+		h.m.Graph.SetLinkState(req.Src, req.Dst, "IMPAIRED")
+		logrus.Infof("[FAULT_SIMULATION] Link impaired (latency/loss injected): [%s <-> %s]", req.Src, req.Dst)
+		if h.auditStore != nil {
+			h.auditStore.Record(&AuditEvent{
+				Node:        req.Src,
+				Category:    "FAULT_SIMULATION",
+				Action:      "LINK_IMPAIRED",
+				Description: fmt.Sprintf("Interface link impaired with synthetic packet loss/latency: %s <-> %s", req.Src, req.Dst),
+				Level:       AuditLevelWarn,
 			})
 		}
 	} else {
 		h.m.Graph.SetLinkState(req.Src, req.Dst, "UP")
-		logrus.Infof("[CHAOS] Fault healed: link [%s <-> %s] restored", req.Src, req.Dst)
+		logrus.Infof("[FAULT_SIMULATION] Link operational up: [%s <-> %s]", req.Src, req.Dst)
 		if h.auditStore != nil {
 			h.auditStore.Record(&AuditEvent{
 				Node:        req.Src,
-				Category:    "CHAOS",
+				Category:    "FAULT_SIMULATION",
 				Action:      "LINK_RESTORED",
-				Description: fmt.Sprintf("Interface link restored: %s <-> %s (State: UP)", req.Src, req.Dst),
+				Description: fmt.Sprintf("Interface link restored to operational state: %s <-> %s (State: UP)", req.Src, req.Dst),
 				Level:       AuditLevelInfo,
 			})
 		}
@@ -987,4 +1002,54 @@ func (h *HTTPApi) handleSetupCustom(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *HTTPApi) handleExportTopology(w http.ResponseWriter, r *http.Request) {
+	h.setCommonHeaders(w)
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Disposition", "attachment; filename=\"dnms-topology-export.json\"")
 
+	h.m.Graph.NodesLock.RLock()
+	nodesCopy := make(map[string]*graph.NetworkNode, len(h.m.Graph.NodesMap))
+	for k, v := range h.m.Graph.NodesMap {
+		nodesCopy[k] = v
+	}
+	h.m.Graph.NodesLock.RUnlock()
+
+	h.m.Graph.LinksLock.RLock()
+	linksCopy := make([]*graph.NetworkLink, 0, len(h.m.Graph.LinksMap))
+	for _, v := range h.m.Graph.LinksMap {
+		linksCopy = append(linksCopy, v)
+	}
+	h.m.Graph.LinksLock.RUnlock()
+
+	var entNodes []*EnterpriseNode
+	if h.enterpriseReg != nil {
+		entNodes = h.enterpriseReg.All()
+	}
+
+	routes := make([]map[string]interface{}, 0)
+	h.m.Graph.RoutesLock.RLock()
+	for _, rt := range h.m.Graph.RoutesMap {
+		summary := rt.MetricsSummary()
+		routes = append(routes, map[string]interface{}{
+			"path":       rt.Path,
+			"p50_ms":     float64(summary.P50LatencyNs) / 1e6,
+			"p90_ms":     float64(summary.P90LatencyNs) / 1e6,
+			"p99_ms":     float64(summary.P99LatencyNs) / 1e6,
+			"loss_ratio": summary.LossRate,
+		})
+	}
+	h.m.Graph.RoutesLock.RUnlock()
+
+	exportData := map[string]interface{}{
+		"export_timestamp": time.Now().UTC().Format(time.RFC3339),
+		"local_node":       h.localName,
+		"nodes_count":      len(nodesCopy),
+		"links_count":      len(linksCopy),
+		"nodes":            nodesCopy,
+		"enterprise_nodes": entNodes,
+		"links":            linksCopy,
+		"routes":           routes,
+	}
+
+	json.NewEncoder(w).Encode(exportData)
+}
