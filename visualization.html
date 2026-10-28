@@ -3355,7 +3355,7 @@ async function applyChaosAction(act, s, d) {
     }
     syncGraph();
     renderSevered();
-    renderSidebarLinks();
+    renderLinkMonitor();
     fetchAnalytics();
     toast(`${act.toUpperCase()}: ${s} ↔ ${d}`);
 }
@@ -3371,7 +3371,7 @@ async function restoreAllLinks() {
     activeFaults.clear();
     syncGraph();
     renderSevered();
-    renderSidebarLinks();
+    renderLinkMonitor();
     fetchAnalytics();
     toast('All links restored');
 }
