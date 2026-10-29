@@ -1340,6 +1340,17 @@
         .node-g.traced-done .node-circle { stroke: var(--green); stroke-width: 2.2; }
 
         .node-g.selected .node-circle { stroke: #fff; stroke-width: 2.5; }
+        .node-g.offline .node-circle {
+            stroke: var(--red) !important;
+            stroke-dasharray: 4,3 !important;
+            stroke-width: 2.5px !important;
+            fill: #260a0a !important;
+            animation: pulse-severed 1s infinite alternate;
+        }
+        .node-g.offline .node-role-label {
+            fill: var(--red) !important;
+            font-weight: 700;
+        }
 
         .node-label {
             font-family: var(--font-sans);
@@ -2398,13 +2409,28 @@ function updateGraph() {
     ne.append('text').attr('class', 'node-role-label').attr('dy', 10);
 
     const merged = ne.merge(nb);
-    merged.attr('class', d => 'node-g ' + (d.role || 'access') + (selectedNode && selectedNode.id === d.id ? ' selected' : ''));
+    merged.attr('class', d => {
+        const connected = links.filter(l => {
+            const s = l.source.id || l.source;
+            const t = l.target.id || l.target;
+            return s === d.id || t === d.id;
+        });
+        const hasActive = connected.some(l => {
+            const s = l.source.id || l.source;
+            const t = l.target.id || l.target;
+            const isSev = l.state === 'SEVERED' || l.state === 'DOWN' || activeFaults.has(s+';'+t) || activeFaults.has(t+';'+s);
+            return !isSev;
+        });
+        const isOffline = connected.length > 0 && !hasActive;
+        d._isOffline = isOffline;
+        return 'node-g ' + (d.role || 'access') + (isOffline ? ' offline' : '') + (selectedNode && selectedNode.id === d.id ? ' selected' : '');
+    });
     merged.select('.node-label').text(d => {
         const parts = d.id.split('-');
         if (parts.length > 2) return parts[0] + '-' + parts[parts.length-1];
         return d.id.length > 11 ? d.id.slice(0,11) : d.id;
     });
-    merged.select('.node-role-label').text(d => (d.role || 'node').toUpperCase());
+    merged.select('.node-role-label').text(d => d._isOffline ? 'OFFLINE' : (d.role || 'node').toUpperCase());
 
     simulation.nodes(nodes);
     simulation.force('link').links(links);
